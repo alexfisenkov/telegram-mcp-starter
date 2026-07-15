@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "telegram": {
+      "command": "/Users/ВАШЕ_ИМЯ/.telegram-mcp/run.sh"
+    }
+  }
+}

@@ -1,0 +1,11 @@
+# Секреты — никогда не должны попасть в git
+*.env
+session*
+qr-login.png
+
+# Служебное
+node_modules/
+.DS_Store
+Thumbs.db
+*.log
+*.backup-*

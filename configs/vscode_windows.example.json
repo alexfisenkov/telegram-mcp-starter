@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "telegram": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": ["/c", "C:\\Users\\ВАШЕ_ИМЯ\\.telegram-mcp\\run.cmd"]
+    }
+  }
+}

@@ -1,0 +1,6 @@
+# Codex CLI: добавьте этот блок в ~/.codex/config.toml
+# (macOS/Linux; на Windows укажите: command = "cmd", args = ["/c", "C:\\Users\\ВАШЕ_ИМЯ\\.telegram-mcp\\run.cmd"])
+
+[mcp_servers.telegram]
+command = "/Users/ВАШЕ_ИМЯ/.telegram-mcp/run.sh"
+args = []
