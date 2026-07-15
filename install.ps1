@@ -98,7 +98,12 @@ if (-not (Test-Path $PkgJson)) {
     Set-Content -Path $PkgJson -Value "{`n  `"name`": `"telegram-mcp-local`",`n  `"private`": true`n}" -Encoding Ascii
 }
 
-& npm install --prefix "$ServerDir" "$PkgName@$PkgVersion" --no-fund --no-audit --loglevel=error
+Push-Location $ServerDir
+try {
+    & npm install "$PkgName@$PkgVersion" --no-fund --no-audit --loglevel=error
+} finally {
+    Pop-Location
+}
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path $CliJs)) {
     Write-Err "Установка не удалась. Проверьте интернет и запустите скрипт снова. Подробности: docs/TROUBLESHOOTING.md"
     return

@@ -56,6 +56,7 @@ jobs:
         with:
           node-version: 22
       - name: Установка закреплённой версии сервера
-        run: npm install --prefix tests --no-fund --no-audit
+        working-directory: tests
+        run: npm install --no-fund --no-audit
       - name: Одиночный + параллельный запуск
         run: node tests/ci-smoke.mjs

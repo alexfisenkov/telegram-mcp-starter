@@ -112,7 +112,7 @@ if [[ ! -f "$SERVER_DIR/package.json" ]]; then
   printf '{\n  "name": "telegram-mcp-local",\n  "private": true\n}\n' > "$SERVER_DIR/package.json"
 fi
 
-npm install --prefix "$SERVER_DIR" "$PKG@$PKG_VERSION" --no-fund --no-audit --loglevel=error
+(cd "$SERVER_DIR" && npm install "$PKG@$PKG_VERSION" --no-fund --no-audit --loglevel=error)
 if [[ ! -f "$CLI_JS" ]]; then
   err "Установка не удалась: не найден $CLI_JS"
   exit 1
