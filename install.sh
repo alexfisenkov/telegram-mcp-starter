@@ -69,24 +69,79 @@ printf '%s\n' \
 # ---------- шаг 1: Node.js --------------------------------------------------
 step "Шаг 1/7 · Проверяю Node.js"
 
-NODE_BIN="$(command -v node || true)"
-if [[ -z "$NODE_BIN" ]]; then
-  err "Node.js не найден."
+print_node_manual_help() {
   echo ""
-  echo "Установите Node.js LTS (18 или новее) и запустите скрипт ещё раз:"
+  echo "Установите Node.js LTS (18 или новее) вручную и запустите скрипт ещё раз:"
   case "$(uname -s)" in
     Darwin)
-      echo "  • Вариант 1 (рекомендую): скачайте установщик с https://nodejs.org (кнопка LTS)"
+      echo "  • Вариант 1: скачайте установщик с https://nodejs.org (кнопка LTS)"
       echo "  • Вариант 2 (если есть Homebrew): brew install node"
       ;;
     Linux)
+      echo "  • Универсально (без sudo): установите nvm — https://github.com/nvm-sh/nvm"
       echo "  • Ubuntu/Debian:  sudo apt update && sudo apt install -y nodejs npm"
-      echo "    (если в репозитории старая версия — https://nodejs.org/en/download)"
       echo "  • Fedora:         sudo dnf install -y nodejs"
-      echo "  • Универсально:   установите nvm — https://github.com/nvm-sh/nvm"
       ;;
   esac
-  exit 1
+}
+
+install_node_auto() { # автоматическая установка Node.js LTS на чистый компьютер
+  case "$(uname -s)" in
+    Darwin)
+      if command -v brew >/dev/null 2>&1; then
+        if ask_yn "Установить Node.js автоматически через Homebrew?"; then
+          brew install node && return 0
+        fi
+        return 1
+      fi
+      if ask_yn "Установить Node.js LTS автоматически? (скачаю официальный установщик nodejs.org, система спросит пароль администратора)"; then
+        local pkg_name pkg_url tmp_pkg
+        # имя свежего LTS-пакета берём из официального каталога nodejs.org
+        # (.pkg универсальный — подходит и Apple Silicon, и Intel)
+        pkg_name="$(curl -fsSL "https://nodejs.org/dist/latest-v22.x/" | grep -oE 'node-v22[0-9.]+\.pkg' | head -1)"
+        if [[ -z "$pkg_name" ]]; then
+          err "Не удалось определить свежую версию Node.js — установите вручную."
+          return 1
+        fi
+        pkg_url="https://nodejs.org/dist/latest-v22.x/$pkg_name"
+        tmp_pkg="$(mktemp -d)/$pkg_name"
+        echo "Скачиваю $pkg_url ..."
+        curl -fL -o "$tmp_pkg" "$pkg_url"
+        echo "Устанавливаю (потребуется пароль администратора)..."
+        sudo installer -pkg "$tmp_pkg" -target / || return 1
+        rm -f "$tmp_pkg"
+        export PATH="/usr/local/bin:/opt/homebrew/bin:$PATH"
+        return 0
+      fi
+      return 1
+      ;;
+    Linux)
+      if ask_yn "Установить Node.js LTS автоматически через nvm? (в вашу домашнюю папку, без прав администратора)"; then
+        curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+        export NVM_DIR="$HOME/.nvm"
+        # shellcheck source=/dev/null
+        [[ -s "$NVM_DIR/nvm.sh" ]] && source "$NVM_DIR/nvm.sh"
+        nvm install --lts && return 0
+      fi
+      return 1
+      ;;
+  esac
+  return 1
+}
+
+NODE_BIN="$(command -v node || true)"
+if [[ -z "$NODE_BIN" ]]; then
+  warn "Node.js не найден — попробую установить автоматически."
+  if install_node_auto; then
+    hash -r 2>/dev/null || true
+    NODE_BIN="$(command -v node || true)"
+  fi
+  if [[ -z "$NODE_BIN" ]]; then
+    err "Node.js так и не установлен."
+    print_node_manual_help
+    exit 1
+  fi
+  ok "Node.js установлен автоматически"
 fi
 
 NODE_MAJOR="$("$NODE_BIN" -p 'process.versions.node.split(".")[0]')"

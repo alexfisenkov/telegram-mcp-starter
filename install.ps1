@@ -61,17 +61,32 @@ Write-Host ""
 Write-Step "Шаг 1/7 · Проверяю Node.js"
 
 $NodeCmd = Get-Command node -ErrorAction SilentlyContinue
-if (-not $NodeCmd) {
-    Write-Err "Node.js не найден."
-    Write-Host ""
-    Write-Host "Установите Node.js LTS (18 или новее) любым способом и запустите скрипт ещё раз:"
-    Write-Host "  • Вариант 1 (рекомендую): скачайте установщик с https://nodejs.org (кнопка LTS)"
-    Write-Host "  • Вариант 2 (через winget): winget install OpenJS.NodeJS.LTS"
-    Write-Host ""
-    Write-Host "После установки ЗАКРОЙТЕ и заново откройте PowerShell."
-    return
+$NodeBin = $null
+if ($NodeCmd) {
+    $NodeBin = $NodeCmd.Source
+} else {
+    Write-Warn2 "Node.js не найден — попробую установить автоматически."
+    $WingetCmd = Get-Command winget -ErrorAction SilentlyContinue
+    if ($WingetCmd -and (Ask-YesNo "Установить Node.js LTS автоматически через winget?")) {
+        & winget install --id OpenJS.NodeJS.LTS --accept-package-agreements --accept-source-agreements --silent
+        # PATH текущего окна ещё не знает про node — берём по полному пути
+        $Candidate = Join-Path $env:ProgramFiles "nodejs\node.exe"
+        if (Test-Path $Candidate) {
+            $NodeBin = $Candidate
+            Write-Ok "Node.js установлен автоматически"
+        }
+    }
+    if (-not $NodeBin) {
+        Write-Err "Node.js так и не установлен."
+        Write-Host ""
+        Write-Host "Установите вручную и запустите скрипт ещё раз:"
+        Write-Host "  • Вариант 1 (рекомендую): скачайте установщик с https://nodejs.org (кнопка LTS)"
+        Write-Host "  • Вариант 2 (через winget): winget install OpenJS.NodeJS.LTS"
+        Write-Host ""
+        Write-Host "После ручной установки ЗАКРОЙТЕ и заново откройте PowerShell."
+        return
+    }
 }
-$NodeBin = $NodeCmd.Source
 # ВАЖНО: парсим `node -v`, а не `node -p "..."` — в Windows PowerShell 5.1
 # кавычки внутри аргументов нативных команд теряются.
 $NodeVersionRaw = (& $NodeBin -v)
@@ -82,12 +97,17 @@ if ($NodeMajor -lt 18) {
 }
 Write-Ok "Node.js $NodeVersionRaw — подходит ($NodeBin)"
 
-$NpmCmd = Get-Command npm -ErrorAction SilentlyContinue
-if (-not $NpmCmd) {
+# npm ищем рядом с node (важно после автоустановки, пока PATH не обновился)
+$NpmBin = Join-Path (Split-Path $NodeBin) "npm.cmd"
+if (-not (Test-Path $NpmBin)) {
+    $NpmCmd = Get-Command npm -ErrorAction SilentlyContinue
+    if ($NpmCmd) { $NpmBin = $NpmCmd.Source }
+}
+if (-not $NpmBin -or -not (Test-Path $NpmBin)) {
     Write-Err "npm не найден (обычно ставится вместе с Node.js). Переустановите Node.js с https://nodejs.org"
     return
 }
-Write-Ok "npm $(& npm -v)"
+Write-Ok "npm $(& $NpmBin -v)"
 
 # ---------- шаг 2: установка сервера ----------------------------------------
 Write-Step "Шаг 2/7 · Устанавливаю MCP-сервер $PkgName@$PkgVersion"
@@ -100,7 +120,7 @@ if (-not (Test-Path $PkgJson)) {
 
 Push-Location $ServerDir
 try {
-    & npm install "$PkgName@$PkgVersion" --no-fund --no-audit --loglevel=error
+    & $NpmBin install "$PkgName@$PkgVersion" --no-fund --no-audit --loglevel=error
 } finally {
     Pop-Location
 }
