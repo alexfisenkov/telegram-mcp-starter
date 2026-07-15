@@ -37,18 +37,17 @@ claude mcp add telegram-work -s user -- "$HOME/.telegram-mcp/run-work.sh"
 
 ## Общий daemon: несколько клиентов — один аккаунт
 
-Проблема: сессию Telegram может держать **только один процесс**. Если одновременно открыты Claude Desktop + пара окон Claude Code, каждый поднимает свой сервер → они выбивают друг друга с ошибкой `AUTH_KEY_DUPLICATED`.
-
-Решение встроено в сервер начиная с v1.38: один постоянный **daemon** владеет подключением, остальные процессы автоматически становятся его клиентами через локальный сокет.
+Полностью описано в **[08-multi-agent.md](08-multi-agent.md)**: сервер сам работает по схеме «один владелец — остальные клиенты», а готовый фоновый сервис с автостартом ставится одной командой:
 
 ```bash
-# Запустить daemon (macOS/Linux; держите его запущенным, например в tmux):
-~/.telegram-mcp/run.sh serve
+~/.telegram-mcp/daemon-setup.sh install     # macOS (launchd) / Linux (systemd)
 ```
 
-Больше ничего менять не нужно: обычные запуски `run.sh` сами обнаружат daemon (по lock-файлу рядом с сессией) и подключатся к нему как клиенты. Закрытие любого клиента не рвёт общее соединение.
+```powershell
+powershell "$env:USERPROFILE\.telegram-mcp\daemon-setup.ps1" install   # Windows (Планировщик)
+```
 
-Автозапуск daemon при входе в систему (launchd на macOS, systemd на Linux) описан в [официальном гайде shared-daemon](https://mcp-telegram.github.io/mcp-telegram/guides/shared-daemon).
+Запуск руками без сервиса (например, в tmux): `~/.telegram-mcp/run.sh serve`. Официальный гайд апстрима: [shared-daemon](https://mcp-telegram.github.io/mcp-telegram/guides/shared-daemon).
 
 ## Прокси (SOCKS5 / MTProxy)
 

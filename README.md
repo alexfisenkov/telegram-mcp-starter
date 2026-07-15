@@ -147,6 +147,12 @@ irm https://raw.githubusercontent.com/alexfisenkov/telegram-mcp-starter/main/uni
 
 ---
 
+## Несколько AI-агентов одновременно
+
+Работаете сразу с Claude Code + Claude Desktop + Codex + Cursor + Antigravity? Соединение с Telegram может держать только один процесс — сервер сам разруливает это по схеме «один владелец, остальные клиенты». А чтобы закрытие любого агента не обрывало Telegram у остальных, настройте **фоновый сервис** (установщик предложит на шаге 6, или в любой момент: `~/.telegram-mcp/daemon-setup.sh install`).
+
+Полное объяснение и подключение каждого агента: **[docs/08-multi-agent.md](docs/08-multi-agent.md)**.
+
 ## Если что-то не работает
 
 1. **[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** — разобраны все типовые ошибки: Node не найден, QR не сканируется, `AUTH_KEY_DUPLICATED`, Claude не видит сервер, Telegram заблокирован провайдером и т.д.
@@ -165,8 +171,10 @@ irm https://raw.githubusercontent.com/alexfisenkov/telegram-mcp-starter/main/uni
 telegram-mcp-starter/
 ├── install.sh / install.ps1        установка одной командой (macOS+Linux / Windows)
 ├── uninstall.sh / uninstall.ps1    полное удаление
-├── tools/                          doctor.mjs (проверка), merge-config.mjs (правка конфигов)
+├── tools/                          doctor.mjs (проверка), merge-config.mjs (конфиги),
+│                                   daemon-setup.* (фоновый сервис), patch-win32-socket.mjs
 ├── configs/                        готовые примеры конфигов для всех клиентов
+├── tests/ + .github/workflows/     автотесты на macOS, Linux и Windows при каждом изменении
 └── docs/                           пошаговые инструкции, безопасность, FAQ, troubleshooting
 ```
 

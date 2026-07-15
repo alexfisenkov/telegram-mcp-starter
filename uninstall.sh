@@ -19,6 +19,19 @@ case "$answer" in
   *) echo "Отменено."; exit 0 ;;
 esac
 
+# 0. Фоновый сервис (если настраивался)
+if [[ -x "$BASE_DIR/daemon-setup.sh" ]]; then
+  "$BASE_DIR/daemon-setup.sh" remove >/dev/null 2>&1 || true
+fi
+# страховка на случай, если скрипт сервиса уже удалён
+launchctl bootout "gui/$(id -u)/com.telegram-mcp.daemon" >/dev/null 2>&1 || true
+rm -f "$HOME/Library/LaunchAgents/com.telegram-mcp.daemon.plist"
+if command -v systemctl >/dev/null 2>&1; then
+  systemctl --user disable --now telegram-mcp.service >/dev/null 2>&1 || true
+  rm -f "$HOME/.config/systemd/user/telegram-mcp.service"
+fi
+echo "✓ Фоновый сервис остановлен и удалён (если был)"
+
 # 1. Claude Code
 if command -v claude >/dev/null 2>&1; then
   claude mcp remove telegram -s user >/dev/null 2>&1 && echo "✓ Удалён из Claude Code" || true

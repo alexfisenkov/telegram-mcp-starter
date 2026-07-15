@@ -14,6 +14,7 @@
 | `vscode.example.json` | VS Code, Copilot MCP (macOS/Linux) | `.vscode/mcp.json` в проекте или через команду `MCP: Add Server` |
 | `vscode_windows.example.json` | VS Code, Copilot MCP (Windows) | `.vscode/mcp.json` в проекте |
 | `codex.example.toml` | Codex CLI | блок в `~/.codex/config.toml` |
+| `antigravity.example.json` | Antigravity | панель агента → MCP → Manage MCP servers → View raw config (на Windows `command`/`args` — как в `claude_desktop_windows.example.json`) |
 
 Claude Code подключается командой, файл не нужен — см. [docs/06-claude-code.md](../docs/06-claude-code.md).
 

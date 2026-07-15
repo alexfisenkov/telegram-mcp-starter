@@ -14,7 +14,8 @@
 #    3. Спрашивает ваши api_id / api_hash (только у вас, хранит локально, 600)
 #    4. Логин по QR-коду (поддерживает 2FA / облачный пароль)
 #    5. Подключает сервер к Claude Code и/или Claude Desktop
-#    6. Проверяет, что всё работает (doctor)
+#    6. (опционально) Настраивает фоновый сервис для нескольких агентов сразу
+#    7. Проверяет, что всё работает (doctor)
 #
 #  Скрипт идемпотентный: можно запускать повторно, ничего не сломает.
 # ============================================================================
@@ -66,7 +67,7 @@ printf '%s\n' \
   ""
 
 # ---------- шаг 1: Node.js --------------------------------------------------
-step "Шаг 1/6 · Проверяю Node.js"
+step "Шаг 1/7 · Проверяю Node.js"
 
 NODE_BIN="$(command -v node || true)"
 if [[ -z "$NODE_BIN" ]]; then
@@ -103,7 +104,7 @@ fi
 ok "npm $(npm -v)"
 
 # ---------- шаг 2: установка сервера ----------------------------------------
-step "Шаг 2/6 · Устанавливаю MCP-сервер $PKG@$PKG_VERSION"
+step "Шаг 2/7 · Устанавливаю MCP-сервер $PKG@$PKG_VERSION"
 
 mkdir -p "$BASE_DIR" "$SERVER_DIR"
 chmod 700 "$BASE_DIR"
@@ -120,7 +121,7 @@ fi
 ok "Сервер установлен: $SERVER_DIR"
 
 # ---------- шаг 3: api_id / api_hash ----------------------------------------
-step "Шаг 3/6 · Ключи Telegram API (api_id / api_hash)"
+step "Шаг 3/7 · Ключи Telegram API (api_id / api_hash)"
 
 echo "Ключи берутся на https://my.telegram.org → API development tools."
 echo "Подробная инструкция: docs/01-api-keys.md в репозитории."
@@ -279,10 +280,127 @@ if (command === "--remove") {
 writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n");
 EOF
 
-ok "Служебные скрипты записаны (run.sh, doctor.mjs, merge-config.mjs)"
+DAEMON_SETUP="$BASE_DIR/daemon-setup.sh"
+cat > "$DAEMON_SETUP" <<'DSEOF'
+#!/usr/bin/env bash
+# Telegram MCP — постоянный фоновый сервис (macOS: launchd, Linux: systemd).
+# Нужен, когда с одним аккаунтом работают несколько AI-агентов одновременно:
+# сервис всегда владеет соединением, агенты подключаются к нему как клиенты,
+# и закрытие любого агента не отключает Telegram у остальных.
+# Использование: daemon-setup.sh [install|remove|restart|status]
+set -euo pipefail
+
+CMD="${1:-install}"
+BASE="$HOME/.telegram-mcp"
+RUN="$BASE/run.sh"
+LOG="$BASE/daemon.log"
+
+if [[ ! -x "$RUN" ]]; then
+  echo "✗ Нет $RUN — сначала запустите install.sh" >&2
+  exit 1
+fi
+
+case "$(uname -s)" in
+  Darwin)
+    LABEL="com.telegram-mcp.daemon"
+    PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
+    DOMAIN="gui/$(id -u)"
+    case "$CMD" in
+      install)
+        mkdir -p "$HOME/Library/LaunchAgents"
+        cat > "$PLIST" <<PLIST_EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>$LABEL</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>$RUN</string>
+    <string>serve</string>
+  </array>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>StandardOutPath</key><string>$LOG</string>
+  <key>StandardErrorPath</key><string>$LOG</string>
+</dict>
+</plist>
+PLIST_EOF
+        launchctl bootout "$DOMAIN/$LABEL" >/dev/null 2>&1 || true
+        launchctl bootstrap "$DOMAIN" "$PLIST"
+        launchctl kickstart -k "$DOMAIN/$LABEL" >/dev/null 2>&1 || true
+        echo "✓ Сервис установлен и запущен (автостарт при входе в систему). Лог: $LOG"
+        ;;
+      remove)
+        launchctl bootout "$DOMAIN/$LABEL" >/dev/null 2>&1 || true
+        rm -f "$PLIST"
+        echo "✓ Сервис остановлен и удалён"
+        ;;
+      restart)
+        launchctl kickstart -k "$DOMAIN/$LABEL" && echo "✓ Сервис перезапущен"
+        ;;
+      status)
+        launchctl print "$DOMAIN/$LABEL" 2>/dev/null | sed -n '1,12p' || echo "Сервис не установлен"
+        ;;
+      *)
+        echo "Использование: daemon-setup.sh [install|remove|restart|status]" >&2
+        exit 2
+        ;;
+    esac
+    ;;
+  Linux)
+    UNIT_DIR="$HOME/.config/systemd/user"
+    UNIT="$UNIT_DIR/telegram-mcp.service"
+    case "$CMD" in
+      install)
+        mkdir -p "$UNIT_DIR"
+        cat > "$UNIT" <<UNIT_EOF
+[Unit]
+Description=Telegram MCP daemon (connection owner)
+
+[Service]
+ExecStart=$RUN serve
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target
+UNIT_EOF
+        systemctl --user daemon-reload
+        systemctl --user enable --now telegram-mcp.service
+        echo "✓ Сервис установлен и запущен. Статус: systemctl --user status telegram-mcp"
+        echo "  Если это сервер без входа в GUI — включите linger: sudo loginctl enable-linger $USER"
+        ;;
+      remove)
+        systemctl --user disable --now telegram-mcp.service >/dev/null 2>&1 || true
+        rm -f "$UNIT"
+        systemctl --user daemon-reload
+        echo "✓ Сервис остановлен и удалён"
+        ;;
+      restart)
+        systemctl --user restart telegram-mcp.service && echo "✓ Сервис перезапущен"
+        ;;
+      status)
+        systemctl --user status telegram-mcp.service --no-pager 2>/dev/null | head -12 || echo "Сервис не установлен"
+        ;;
+      *)
+        echo "Использование: daemon-setup.sh [install|remove|restart|status]" >&2
+        exit 2
+        ;;
+    esac
+    ;;
+  *)
+    echo "✗ Неподдерживаемая ОС: $(uname -s)" >&2
+    exit 1
+    ;;
+esac
+DSEOF
+chmod 700 "$DAEMON_SETUP"
+
+ok "Служебные скрипты записаны (run.sh, doctor.mjs, merge-config.mjs, daemon-setup.sh)"
 
 # ---------- шаг 4: вход по QR-коду ------------------------------------------
-step "Шаг 4/6 · Вход в Telegram по QR-коду"
+step "Шаг 4/7 · Вход в Telegram по QR-коду"
 
 DO_LOGIN=1
 if [[ -f "$SESSION_PATH" ]]; then
@@ -317,10 +435,16 @@ if [[ "$DO_LOGIN" -eq 1 ]]; then
   fi
   unset TELEGRAM_2FA_PASSWORD 2>/dev/null || true
   ok "Вход выполнен, сессия сохранена: $TELEGRAM_SESSION_PATH"
+
+  # Если фоновый сервис уже настроен — перезапускаем, чтобы он подхватил новую сессию
+  if [[ -f "$HOME/Library/LaunchAgents/com.telegram-mcp.daemon.plist" || -f "$HOME/.config/systemd/user/telegram-mcp.service" ]]; then
+    "$DAEMON_SETUP" restart >/dev/null 2>&1 || true
+    ok "Фоновый сервис перезапущен с новой сессией"
+  fi
 fi
 
 # ---------- шаг 5: подключение к клиентам -----------------------------------
-step "Шаг 5/6 · Подключаю к Claude"
+step "Шаг 5/7 · Подключаю к Claude"
 
 # Claude Code (CLI)
 if command -v claude >/dev/null 2>&1; then
@@ -354,8 +478,25 @@ else
   warn "Claude Desktop не найден — пропускаю. Инструкция: docs/05-claude-desktop.md"
 fi
 
-# ---------- шаг 6: проверка ---------------------------------------------------
-step "Шаг 6/6 · Проверяю подключение (doctor)"
+# ---------- шаг 6: несколько агентов (опционально) ---------------------------
+step "Шаг 6/7 · Несколько AI-агентов одновременно (опционально)"
+
+echo "Если вы работаете с НЕСКОЛЬКИМИ AI-агентами сразу (Claude Code + Claude"
+echo "Desktop + Codex + Cursor...), рекомендуется фоновый сервис: он постоянно"
+echo "владеет соединением с Telegram, агенты подключаются к нему как клиенты,"
+echo "и закрытие любого агента не отключает Telegram у остальных."
+echo "Настроить можно и позже: ~/.telegram-mcp/daemon-setup.sh install"
+echo ""
+if ask_yn "Настроить фоновый сервис сейчас?"; then
+  if "$DAEMON_SETUP" install; then
+    ok "Фоновый сервис работает (подробнее: docs/08-multi-agent.md)"
+  else
+    warn "Не удалось настроить сервис — см. docs/08-multi-agent.md"
+  fi
+fi
+
+# ---------- шаг 7: проверка ---------------------------------------------------
+step "Шаг 7/7 · Проверяю подключение (doctor)"
 
 if "$NODE_BIN" "$DOCTOR" "$WRAPPER"; then
   ok "Всё работает!"
@@ -373,6 +514,7 @@ cat <<SUMMARY
   • Сессия:        $SESSION_PATH
   • Запуск:        $WRAPPER
   • Проверка:      "$NODE_BIN" "$DOCTOR" "$WRAPPER"
+  • Фоновый сервис (несколько агентов): $DAEMON_SETUP [install|remove|restart|status]
 
 Первые команды для Claude (просто напишите в чат):
   • «Покажи мои непрочитанные сообщения в Telegram»

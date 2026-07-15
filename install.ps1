@@ -58,7 +58,7 @@ Write-Host "Сервер: $PkgName@$PkgVersion  |  Установка в: $BaseD
 Write-Host ""
 
 # ---------- шаг 1: Node.js --------------------------------------------------
-Write-Step "Шаг 1/6 · Проверяю Node.js"
+Write-Step "Шаг 1/7 · Проверяю Node.js"
 
 $NodeCmd = Get-Command node -ErrorAction SilentlyContinue
 if (-not $NodeCmd) {
@@ -90,7 +90,7 @@ if (-not $NpmCmd) {
 Write-Ok "npm $(& npm -v)"
 
 # ---------- шаг 2: установка сервера ----------------------------------------
-Write-Step "Шаг 2/6 · Устанавливаю MCP-сервер $PkgName@$PkgVersion"
+Write-Step "Шаг 2/7 · Устанавливаю MCP-сервер $PkgName@$PkgVersion"
 
 New-Item -ItemType Directory -Force -Path $ServerDir | Out-Null
 $PkgJson = Join-Path $ServerDir "package.json"
@@ -110,8 +110,60 @@ if ($LASTEXITCODE -ne 0 -or -not (Test-Path $CliJs)) {
 }
 Write-Ok "Сервер установлен: $ServerDir"
 
+# --- Обязательный патч для Windows -------------------------------------------
+# Node на Windows не умеет слушать unix-сокет по файловому пути (listen EACCES),
+# из-за чего сервер падал бы при старте. Переводим IPC на именованный канал.
+$PatchJs = Join-Path $ServerDir "patch-win32-socket.mjs"
+$LockJs  = Join-Path $ServerDir "node_modules\@overpod\mcp-telegram\dist\lock.js"
+$PatchContent = @'
+#!/usr/bin/env node
+// Патч для @overpod/mcp-telegram@1.41.2: на Windows слушаем именованный канал
+// \\.\pipe\... вместо файлового пути (Node на Windows иначе падает: listen EACCES).
+// Идемпотентен; на macOS/Linux поведение не меняет.
+import { readFileSync, writeFileSync } from "node:fs";
+
+const target = process.argv[2];
+if (!target) {
+  console.error("usage: node patch-win32-socket.mjs <dist/lock.js>");
+  process.exit(2);
+}
+
+const MARKER = "telegram-mcp-starter win32 pipe patch";
+const src = readFileSync(target, "utf8");
+if (src.includes(MARKER)) {
+  console.log("Патч уже применён — пропускаю.");
+  process.exit(0);
+}
+
+const needle = `export function socketPath() {
+    return join(resolveSessionDir(), "daemon.sock");
+}`;
+
+if (!src.includes(needle)) {
+  console.error("[X] Не нашёл ожидаемый код socketPath() — версия пакета отличается от закреплённой? Патч НЕ применён.");
+  process.exit(1);
+}
+
+const replacement = `export function socketPath() {
+    // ${MARKER}
+    if (process.platform === "win32") {
+        return "\\\\\\\\.\\\\pipe\\\\mcp-telegram-" + resolveSessionDir().replace(/[\\\\/:]/g, "-");
+    }
+    return join(resolveSessionDir(), "daemon.sock");
+}`;
+
+writeFileSync(target, src.replace(needle, replacement));
+console.log("[OK] Патч применён: " + target);
+'@
+Set-Content -Path $PatchJs -Value $PatchContent -Encoding UTF8
+& $NodeBin $PatchJs $LockJs
+if ($LASTEXITCODE -ne 0) {
+    Write-Err "Не удалось применить патч совместимости с Windows — установка прервана."
+    return
+}
+
 # ---------- шаг 3: api_id / api_hash ----------------------------------------
-Write-Step "Шаг 3/6 · Ключи Telegram API (api_id / api_hash)"
+Write-Step "Шаг 3/7 · Ключи Telegram API (api_id / api_hash)"
 
 Write-Host "Ключи берутся на https://my.telegram.org -> API development tools."
 Write-Host "Подробная инструкция: docs/01-api-keys.md в репозитории."
@@ -269,10 +321,87 @@ writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n");
 '@
 Set-Content -Path $MergerJs -Value $MergerContent -Encoding UTF8
 
-Write-Ok "Служебные скрипты записаны (run.cmd, doctor.mjs, merge-config.mjs)"
+$DaemonPs1 = Join-Path $BaseDir "daemon-setup.ps1"
+$DaemonContent = @'
+# Telegram MCP — постоянный фоновый сервис (Windows, Планировщик заданий).
+# Нужен, когда с одним аккаунтом работают несколько AI-агентов одновременно:
+# сервис всегда владеет соединением, агенты подключаются к нему как клиенты,
+# и закрытие любого агента не отключает Telegram у остальных.
+# Использование: .\daemon-setup.ps1 [install|remove|restart|status]
+param([string]$Cmd = "install")
+
+$ErrorActionPreference = "Stop"
+
+$TaskName = "TelegramMcpDaemon"
+$BaseDir  = Join-Path $env:USERPROFILE ".telegram-mcp"
+$RunCmd   = Join-Path $BaseDir "run.cmd"
+$VbsPath  = Join-Path $BaseDir "daemon.vbs"
+$LockFile = Join-Path $BaseDir "daemon.lock"
+
+if (-not (Test-Path $RunCmd)) {
+    Write-Host "[X] Нет $RunCmd — сначала запустите install.ps1" -ForegroundColor Red
+    exit 1
+}
+
+function Stop-DaemonProcess {
+    if (Test-Path $LockFile) {
+        $pidText = (Get-Content $LockFile -TotalCount 1 -ErrorAction SilentlyContinue)
+        if ($pidText -match '^\d+$') {
+            try { Stop-Process -Id ([int]$pidText) -Force -ErrorAction Stop } catch { }
+        }
+    }
+}
+
+switch ($Cmd) {
+    "install" {
+        $VbsContent = 'CreateObject("WScript.Shell").Run """__RUN_CMD__"" serve", 0, False'
+        Set-Content -Path $VbsPath -Value $VbsContent.Replace("__RUN_CMD__", $RunCmd) -Encoding Ascii
+
+        $action   = New-ScheduledTaskAction -Execute "wscript.exe" -Argument "`"$VbsPath`""
+        $trigger  = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
+        $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit ([TimeSpan]::Zero)
+        Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Settings $settings -Force | Out-Null
+        Start-ScheduledTask -TaskName $TaskName
+        Write-Host "[OK] Сервис установлен и запущен (автостарт при входе в систему)." -ForegroundColor Green
+    }
+    "remove" {
+        try { Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue } catch { }
+        try { Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false -ErrorAction SilentlyContinue } catch { }
+        Stop-DaemonProcess
+        Remove-Item $VbsPath -ErrorAction SilentlyContinue
+        Write-Host "[OK] Сервис остановлен и удалён" -ForegroundColor Green
+    }
+    "restart" {
+        Stop-DaemonProcess
+        Start-Sleep -Seconds 1
+        Start-ScheduledTask -TaskName $TaskName
+        Write-Host "[OK] Сервис перезапущен" -ForegroundColor Green
+    }
+    "status" {
+        $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
+        if (-not $task) { Write-Host "Сервис не установлен"; exit 0 }
+        Write-Host "Задание: $($task.TaskName), состояние: $($task.State)"
+        if (Test-Path $LockFile) {
+            $pidText = (Get-Content $LockFile -TotalCount 1 -ErrorAction SilentlyContinue)
+            if ($pidText -match '^\d+$' -and (Get-Process -Id ([int]$pidText) -ErrorAction SilentlyContinue)) {
+                Write-Host "Владелец соединения: процесс PID $pidText — работает"
+            } else {
+                Write-Host "Процесс-владелец не найден (сервис мог ещё не стартовать)"
+            }
+        }
+    }
+    default {
+        Write-Host "Использование: .\daemon-setup.ps1 [install|remove|restart|status]"
+        exit 2
+    }
+}
+'@
+Set-Content -Path $DaemonPs1 -Value $DaemonContent -Encoding UTF8
+
+Write-Ok "Служебные скрипты записаны (run.cmd, doctor.mjs, merge-config.mjs, daemon-setup.ps1)"
 
 # ---------- шаг 4: вход по QR-коду ------------------------------------------
-Write-Step "Шаг 4/6 · Вход в Telegram по QR-коду"
+Write-Step "Шаг 4/7 · Вход в Telegram по QR-коду"
 
 $DoLogin = $true
 if (Test-Path $SessionPath) {
@@ -313,10 +442,16 @@ if ($DoLogin) {
         return
     }
     Write-Ok "Вход выполнен, сессия сохранена: $SessionPath"
+
+    # Если фоновый сервис уже настроен — перезапускаем, чтобы он подхватил новую сессию
+    if (Get-ScheduledTask -TaskName "TelegramMcpDaemon" -ErrorAction SilentlyContinue) {
+        & $DaemonPs1 restart
+        Write-Ok "Фоновый сервис перезапущен с новой сессией"
+    }
 }
 
 # ---------- шаг 5: подключение к клиентам -----------------------------------
-Write-Step "Шаг 5/6 · Подключаю к Claude"
+Write-Step "Шаг 5/7 · Подключаю к Claude"
 
 # Claude Code (CLI)
 $ClaudeCmd = Get-Command claude -ErrorAction SilentlyContinue
@@ -354,8 +489,26 @@ if ((Test-Path (Split-Path $DesktopCfg)) -or (Test-Path $DesktopCfg)) {
     Write-Warn2 "Claude Desktop не найден — пропускаю. Инструкция: docs/05-claude-desktop.md"
 }
 
-# ---------- шаг 6: проверка ---------------------------------------------------
-Write-Step "Шаг 6/6 · Проверяю подключение (doctor)"
+# ---------- шаг 6: несколько агентов (опционально) ---------------------------
+Write-Step "Шаг 6/7 · Несколько AI-агентов одновременно (опционально)"
+
+Write-Host "Если вы работаете с НЕСКОЛЬКИМИ AI-агентами сразу (Claude Code + Claude"
+Write-Host "Desktop + Codex + Cursor...), рекомендуется фоновый сервис: он постоянно"
+Write-Host "владеет соединением с Telegram, агенты подключаются к нему как клиенты,"
+Write-Host "и закрытие любого агента не отключает Telegram у остальных."
+Write-Host "Настроить можно и позже: powershell $DaemonPs1 install"
+Write-Host ""
+if (Ask-YesNo "Настроить фоновый сервис сейчас?") {
+    & $DaemonPs1 install
+    if ($LASTEXITCODE -eq 0) {
+        Write-Ok "Фоновый сервис работает (подробнее: docs/08-multi-agent.md)"
+    } else {
+        Write-Warn2 "Не удалось настроить сервис — см. docs/08-multi-agent.md"
+    }
+}
+
+# ---------- шаг 7: проверка ---------------------------------------------------
+Write-Step "Шаг 7/7 · Проверяю подключение (doctor)"
 
 & $NodeBin $DoctorJs "cmd" "/c" $RunCmd
 if ($LASTEXITCODE -eq 0) {
@@ -374,6 +527,7 @@ Write-Host "  • Ключи API: $EnvFile  (доступ только у ваш
 Write-Host "  • Сессия:    $SessionPath"
 Write-Host "  • Запуск:    $RunCmd"
 Write-Host "  • Проверка:  node `"$DoctorJs`" cmd /c `"$RunCmd`""
+Write-Host "  • Фоновый сервис (несколько агентов): powershell `"$DaemonPs1`" [install|remove|restart|status]"
 Write-Host ""
 Write-Host "Первые команды для Claude (просто напишите в чат):"
 Write-Host "  • «Покажи мои непрочитанные сообщения в Telegram»"

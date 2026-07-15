@@ -58,5 +58,7 @@ jobs:
       - name: Установка закреплённой версии сервера
         working-directory: tests
         run: npm install --no-fund --no-audit
+      - name: Патч win32-сокета (тот же, что применяет install.ps1)
+        run: node tools/patch-win32-socket.mjs tests/node_modules/@overpod/mcp-telegram/dist/lock.js
       - name: Одиночный + параллельный запуск
         run: node tests/ci-smoke.mjs

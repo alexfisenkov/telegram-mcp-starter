@@ -20,6 +20,18 @@ $MergerJs = Join-Path $BaseDir "server\merge-config.mjs"
 $answer = Read-Host "Удалить Telegram MCP полностью (папка $BaseDir и записи в конфигах)? [y/n]"
 if ($answer -notmatch '^[YyДд]') { Write-Host "Отменено."; return }
 
+# 0. Фоновый сервис (если настраивался)
+try { Stop-ScheduledTask -TaskName "TelegramMcpDaemon" -ErrorAction SilentlyContinue } catch { }
+try { Unregister-ScheduledTask -TaskName "TelegramMcpDaemon" -Confirm:$false -ErrorAction SilentlyContinue } catch { }
+$LockFile = Join-Path $BaseDir "daemon.lock"
+if (Test-Path $LockFile) {
+    $pidText = (Get-Content $LockFile -TotalCount 1 -ErrorAction SilentlyContinue)
+    if ($pidText -match '^\d+$') {
+        try { Stop-Process -Id ([int]$pidText) -Force -ErrorAction Stop } catch { }
+    }
+}
+Write-Host "[OK] Фоновый сервис остановлен и удалён (если был)"
+
 # 1. Claude Code
 if (Get-Command claude -ErrorAction SilentlyContinue) {
     # try/catch + временный EAP: в PS 5.1 перенаправление stderr нативной команды
