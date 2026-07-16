@@ -18,16 +18,30 @@
 
 Проверь `node -v`. Если нет или ниже 18 — поставь: macOS `brew install node` (или официальный .pkg с nodejs.org), Linux — nvm (`curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash` затем `nvm install --lts`), Windows `winget install OpenJS.NodeJS.LTS`. Если не можешь поставить сам (нет прав/менеджера) — скажи человеку одну команду и попроси выполнить.
 
-### Шаг 2. Сервер
+### Шаг 2. Сервер + файлы репозитория
+
+Сначала ставим сам сервер, затем тянем файлы этого репозитория (доктор, патч, daemon-setup) — они понадобятся дальше:
 
 ```bash
 mkdir -p ~/.telegram-mcp/server && chmod 700 ~/.telegram-mcp
 cd ~/.telegram-mcp/server
 [ -f package.json ] || printf '{"name":"telegram-mcp-local","private":true}\n' > package.json
 npm install @overpod/mcp-telegram@1.41.2 --no-fund --no-audit
+
+# файлы репозитория (doctor.mjs, patch-win32-socket.mjs, daemon-setup.sh)
+curl -fsSL https://github.com/alexfisenkov/telegram-mcp-starter/archive/refs/heads/main.tar.gz | tar -xz -C /tmp
+rm -rf ~/.telegram-mcp/app && mv /tmp/telegram-mcp-starter-main ~/.telegram-mcp/app
+cp ~/.telegram-mcp/app/tools/doctor.mjs ~/.telegram-mcp/server/doctor.mjs
+cp ~/.telegram-mcp/app/tools/daemon-setup.sh ~/.telegram-mcp/daemon-setup.sh 2>/dev/null || true
 ```
 
-**Windows — обязательный патч.** Без него сервер на Windows не стартует (`listen EACCES`): скачай и примени `tools/patch-win32-socket.mjs` из этого репозитория к `node_modules/@overpod/mcp-telegram/dist/lock.js` (переводит IPC на именованный канал `\\.\pipe\`). На macOS/Linux патч не нужен.
+(`doctor.mjs` должен лежать именно в `server/`, чтобы находить `@modelcontextprotocol/sdk` в его `node_modules`.)
+
+**Windows — обязательный патч.** Без него сервер на Windows не стартует (`listen EACCES`). После установки пакета выполни (переводит IPC на именованный канал `\\.\pipe\`; на macOS/Linux патч НЕ нужен):
+
+```bash
+node ~/.telegram-mcp/app/tools/patch-win32-socket.mjs "$HOME/.telegram-mcp/server/node_modules/@overpod/mcp-telegram/dist/lock.js"
+```
 
 ### Шаг 3. Ключи Telegram API (нужен человек)
 
@@ -46,7 +60,34 @@ chmod 600 ~/.telegram-mcp/telegram.env
 
 ### Шаг 4. Обёртка запуска
 
-Секреты живут в `telegram.env`, а не в конфиге клиента. Создай `~/.telegram-mcp/run.sh` (chmod 700), который: подхватывает node, `source`-ит `telegram.env`, выставляет `TELEGRAM_SESSION_PATH=$HOME/.telegram-mcp/session` и запускает `node ~/.telegram-mcp/server/node_modules/@overpod/mcp-telegram/dist/cli.js "$@"`. Готовый образец — в `install.sh` этого репозитория (блок «wrapper»); на Windows — `run.cmd` (парсит env через `for /f`). Можешь просто взять эти образцы.
+Секреты живут в `telegram.env`, а не в конфиге клиента. Создай обёртку.
+
+**macOS/Linux** — `~/.telegram-mcp/run.sh` (затем `chmod 700`):
+
+```bash
+cat > ~/.telegram-mcp/run.sh <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+ENV_FILE="$HOME/.telegram-mcp/telegram.env"
+NODE_BIN="$(command -v node || true)"
+[ -z "$NODE_BIN" ] && for c in "$HOME"/.nvm/versions/node/*/bin/node; do [ -x "$c" ] && NODE_BIN="$c"; done
+[ -f "$ENV_FILE" ] && { set -a; source "$ENV_FILE"; set +a; }
+export TELEGRAM_SESSION_PATH="${TELEGRAM_SESSION_PATH:-$HOME/.telegram-mcp/session}"
+exec "$NODE_BIN" "$HOME/.telegram-mcp/server/node_modules/@overpod/mcp-telegram/dist/cli.js" "$@"
+EOF
+chmod 700 ~/.telegram-mcp/run.sh
+```
+
+**Windows** — `%USERPROFILE%\.telegram-mcp\run.cmd` (замени `NODEPATH` на полный путь к `node.exe`, обычно `C:\Program Files\nodejs\node.exe`):
+
+```bat
+@echo off
+setlocal
+set "ENV_FILE=%USERPROFILE%\.telegram-mcp\telegram.env"
+if exist "%ENV_FILE%" for /f "usebackq tokens=1,* delims==" %%a in ("%ENV_FILE%") do set "%%a=%%b"
+if "%TELEGRAM_SESSION_PATH%"=="" set "TELEGRAM_SESSION_PATH=%USERPROFILE%\.telegram-mcp\session"
+"NODEPATH" "%USERPROFILE%\.telegram-mcp\server\node_modules\@overpod\mcp-telegram\dist\cli.js" %*
+```
 
 ### Шаг 5. Вход по QR (нужен человек)
 
