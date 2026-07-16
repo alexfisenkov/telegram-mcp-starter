@@ -173,7 +173,7 @@ cat ~/.telegram-mcp/server/node_modules/@overpod/mcp-telegram/package.json | gre
 
 ### Ничего не помогло
 
-Соберите и пришлите в чат поддержки потока:
+Соберите и приложите к вопросу (Issue в репозитории или чат поддержки):
 1. Вашу ОС и версию (`macOS 14 / Windows 11 / Ubuntu 24.04`).
 2. `node -v`
 3. Полный вывод доктора.
