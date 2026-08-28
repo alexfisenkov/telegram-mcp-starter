@@ -23,7 +23,7 @@ set -euo pipefail
 umask 077   # все создаваемые файлы (ключи, сессия) — только для владельца
 
 PKG="@overpod/mcp-telegram"
-PKG_VERSION="1.41.2"
+PKG_VERSION="1.41.6"
 
 BASE_DIR="$HOME/.telegram-mcp"
 SERVER_DIR="$BASE_DIR/server"

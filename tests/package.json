@@ -3,6 +3,6 @@
   "private": true,
   "description": "CI smoke-тесты: сервер стартует и отдаёт инструменты на macOS/Linux/Windows, второй одновременный клиент не ломает первого",
   "dependencies": {
-    "@overpod/mcp-telegram": "1.41.2"
+    "@overpod/mcp-telegram": "1.41.6"
   }
 }

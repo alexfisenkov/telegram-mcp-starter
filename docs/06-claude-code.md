@@ -44,7 +44,7 @@ claude mcp add telegram -s user \
   -e TELEGRAM_API_ID=ВАШ_ID \
   -e TELEGRAM_API_HASH=ВАШ_HASH \
   -e TELEGRAM_SESSION_PATH="$HOME/.telegram-mcp/session" \
-  -- npx @overpod/mcp-telegram@1.41.2
+  -- npx @overpod/mcp-telegram@1.41.6
 ```
 
-Версию указываем ту же, что ставит установщик (1.41.2), чтобы окружение у всех было одинаковым.
+Версию указываем ту же, что ставит установщик (1.41.6), чтобы окружение у всех было одинаковым.

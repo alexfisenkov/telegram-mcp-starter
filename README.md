@@ -120,7 +120,7 @@ Claude (Desktop / Code / Cursor)
         ▼
 ~/.telegram-mcp/run.sh (или run.cmd)      ← обёртка: подхватывает ключи из telegram.env
         ▼
-@overpod/mcp-telegram  (Node.js)          ← MCP-сервер, закреплённая версия 1.41.2
+@overpod/mcp-telegram  (Node.js)          ← MCP-сервер, закреплённая версия 1.41.6
         │  протокол MTProto (как обычное приложение Telegram)
         ▼
 Серверы Telegram  →  ваш аккаунт
@@ -186,7 +186,7 @@ telegram-mcp-starter/
 ├── install.sh / install.ps1        установка одной командой (macOS+Linux / Windows)
 ├── uninstall.sh / uninstall.ps1    полное удаление
 ├── tools/                          doctor.mjs (проверка), merge-config.mjs (конфиги),
-│                                   daemon-setup.* (фоновый сервис), patch-win32-socket.mjs
+│                                   daemon-setup.* (фоновый сервис)
 ├── configs/                        готовые примеры конфигов для всех клиентов
 ├── tests/ + .github/workflows/     автотесты на macOS, Linux и Windows при каждом изменении
 └── docs/                           пошаговые инструкции, безопасность, FAQ, troubleshooting

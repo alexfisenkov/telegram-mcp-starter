@@ -12,7 +12,7 @@
 
 ## Установка (делаешь ты)
 
-Целевые пути: сервер в `~/.telegram-mcp/server`, ключи в `~/.telegram-mcp/telegram.env`, сессия в `~/.telegram-mcp/session`, обёртка `~/.telegram-mcp/run.sh` (Windows: `run.cmd`). Закреплённая версия сервера — `@overpod/mcp-telegram@1.41.2`.
+Целевые пути: сервер в `~/.telegram-mcp/server`, ключи в `~/.telegram-mcp/telegram.env`, сессия в `~/.telegram-mcp/session`, обёртка `~/.telegram-mcp/run.sh` (Windows: `run.cmd`). Закреплённая версия сервера — `@overpod/mcp-telegram@1.41.6`.
 
 ### Шаг 1. Node.js 20+
 
@@ -26,9 +26,9 @@
 mkdir -p ~/.telegram-mcp/server && chmod 700 ~/.telegram-mcp
 cd ~/.telegram-mcp/server
 [ -f package.json ] || printf '{"name":"telegram-mcp-local","private":true}\n' > package.json
-npm install @overpod/mcp-telegram@1.41.2 --no-fund --no-audit
+npm install @overpod/mcp-telegram@1.41.6 --no-fund --no-audit
 
-# файлы репозитория (doctor.mjs, patch-win32-socket.mjs, daemon-setup.sh)
+# файлы репозитория (doctor.mjs, daemon-setup.sh)
 curl -fsSL https://github.com/alexfisenkov/telegram-mcp-starter/archive/refs/heads/main.tar.gz | tar -xz -C /tmp
 rm -rf ~/.telegram-mcp/app && mv /tmp/telegram-mcp-starter-main ~/.telegram-mcp/app
 cp ~/.telegram-mcp/app/tools/doctor.mjs ~/.telegram-mcp/server/doctor.mjs
@@ -37,11 +37,10 @@ cp ~/.telegram-mcp/app/tools/daemon-setup.sh ~/.telegram-mcp/daemon-setup.sh 2>/
 
 (`doctor.mjs` должен лежать именно в `server/`, чтобы находить `@modelcontextprotocol/sdk` в его `node_modules`.)
 
-**Windows — обязательный патч.** Без него сервер на Windows не стартует (`listen EACCES`). После установки пакета выполни (переводит IPC на именованный канал `\\.\pipe\`; на macOS/Linux патч НЕ нужен):
-
-```bash
-node ~/.telegram-mcp/app/tools/patch-win32-socket.mjs "$HOME/.telegram-mcp/server/node_modules/@overpod/mcp-telegram/dist/lock.js"
-```
+**Windows — ничего доделывать не нужно.** Раньше здесь требовался отдельный патч:
+Node на Windows не умеет слушать unix-сокет по файловому пути, и сервер падал с
+`listen EACCES`. Начиная с версии 1.41.5 пакет делает это сам — переводит внутренний
+канал на именованный (`\\.\pipe\mcp-telegram-<папка сессии>`).
 
 ### Шаг 3. Ключи Telegram API (нужен человек)
 

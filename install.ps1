@@ -19,7 +19,7 @@ function Install-TelegramMcp {
 $ErrorActionPreference = "Stop"
 
 $PkgName    = "@overpod/mcp-telegram"
-$PkgVersion = "1.41.2"
+$PkgVersion = "1.41.6"
 
 $BaseDir    = Join-Path $env:USERPROFILE ".telegram-mcp"
 $ServerDir  = Join-Path $BaseDir "server"
@@ -130,57 +130,12 @@ if ($LASTEXITCODE -ne 0 -or -not (Test-Path $CliJs)) {
 }
 Write-Ok "Сервер установлен: $ServerDir"
 
-# --- Обязательный патч для Windows -------------------------------------------
-# Node на Windows не умеет слушать unix-сокет по файловому пути (listen EACCES),
-# из-за чего сервер падал бы при старте. Переводим IPC на именованный канал.
-$PatchJs = Join-Path $ServerDir "patch-win32-socket.mjs"
-$LockJs  = Join-Path $ServerDir "node_modules\@overpod\mcp-telegram\dist\lock.js"
-$PatchContent = @'
-#!/usr/bin/env node
-// Патч для @overpod/mcp-telegram@1.41.2: на Windows слушаем именованный канал
-// \\.\pipe\... вместо файлового пути (Node на Windows иначе падает: listen EACCES).
-// Идемпотентен; на macOS/Linux поведение не меняет.
-import { readFileSync, writeFileSync } from "node:fs";
-
-const target = process.argv[2];
-if (!target) {
-  console.error("usage: node patch-win32-socket.mjs <dist/lock.js>");
-  process.exit(2);
-}
-
-const MARKER = "telegram-mcp-starter win32 pipe patch";
-const src = readFileSync(target, "utf8");
-if (src.includes(MARKER)) {
-  console.log("Патч уже применён — пропускаю.");
-  process.exit(0);
-}
-
-const needle = `export function socketPath() {
-    return join(resolveSessionDir(), "daemon.sock");
-}`;
-
-if (!src.includes(needle)) {
-  console.error("[X] Не нашёл ожидаемый код socketPath() — версия пакета отличается от закреплённой? Патч НЕ применён.");
-  process.exit(1);
-}
-
-const replacement = `export function socketPath() {
-    // ${MARKER}
-    if (process.platform === "win32") {
-        return "\\\\\\\\.\\\\pipe\\\\mcp-telegram-" + resolveSessionDir().replace(/[\\\\/:]/g, "-");
-    }
-    return join(resolveSessionDir(), "daemon.sock");
-}`;
-
-writeFileSync(target, src.replace(needle, replacement));
-console.log("[OK] Патч применён: " + target);
-'@
-Set-Content -Path $PatchJs -Value $PatchContent -Encoding UTF8
-& $NodeBin $PatchJs $LockJs
-if ($LASTEXITCODE -ne 0) {
-    Write-Err "Не удалось применить патч совместимости с Windows — установка прервана."
-    return
-}
+# --- Windows: патча больше не нужно ------------------------------------------
+# Раньше здесь накладывался свой патч: Node на Windows не умеет слушать unix-сокет
+# по файловому пути (listen EACCES), и сервер падал при старте. В 1.41.5 автор
+# пакета починил это сам — dist/lock.js переводит IPC на именованный канал
+# \\.\pipe\mcp-telegram-<папка сессии>. Наш патч искал старый код socketPath(),
+# которого больше нет, и на свежей версии просто падал бы с ошибкой.
 
 # ---------- шаг 3: api_id / api_hash ----------------------------------------
 Write-Step "Шаг 3/7 · Ключи Telegram API (api_id / api_hash)"
