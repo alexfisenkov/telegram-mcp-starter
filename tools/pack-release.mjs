@@ -31,6 +31,7 @@ export function isReleaseSourcePath(path) {
 function git(root, args) { return execFileSync('git',['-C',root,...args],{maxBuffer:MAX_BYTES}); }
 function below(root,path) { const r=relative(root,path);return r===''||(!r.startsWith(`..${sep}`)&&r!=='..'&&!isAbsolute(r)); }
 function tar(args) { return execFileSync('tar',args,{maxBuffer:MAX_BYTES,timeout:60000,env:{...process.env,COPYFILE_DISABLE:'1'}}); }
+export function tarListingLines(bytes) { return bytes.toString().split(/\r?\n/).filter(Boolean); }
 export function packRelease(repoPath, outputPath) {
   const root=realpathSync(repoPath), output=resolve(outputPath);
   if (existsSync(output)) throw new Error('Refusing to overwrite an existing release');
@@ -68,8 +69,8 @@ export function packRelease(repoPath, outputPath) {
 export function verifyRelease(archivePath,{expectedCommit}={}) {
   const archive=resolve(archivePath),stat=lstatSync(archive);
   if(!stat.isFile()||stat.isSymbolicLink()||stat.size>MAX_BYTES)throw new Error('Invalid release archive');
-  const names=tar(['-tzf',archive]).toString().split('\n').filter(Boolean);
-  const listing=tar(['-tvzf',archive]).toString().split('\n').filter(Boolean);
+  const names=tarListingLines(tar(['-tzf',archive]));
+  const listing=tarListingLines(tar(['-tvzf',archive]));
   if(names.length!==listing.length)throw new Error('Ambiguous archive listing');
   if(listing.some(line=>!['-','d'].includes(line[0])))throw new Error('Symlink/special archive member');
   const members=[], modes=new Map();

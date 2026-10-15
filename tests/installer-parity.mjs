@@ -28,6 +28,8 @@ assert.match(sh, /api\.github\.com\/repos\/\$SOURCE_REPOSITORY\/commits\/\$SOURC
 assert.match(sh, /github\.com\/\$SOURCE_REPOSITORY\/archive\/\$SOURCE_COMMIT\.tar\.gz/);
 assert.match(ps, /api\.github\.com\/repos\/\$SourceRepository\/commits\/\$SourceVersion/);
 assert.match(ps, /github\.com\/\$SourceRepository\/archive\/\$SourceCommit\.tar\.gz/);
+assert.match(ps, /read-lockfile\.cjs/);
+assert.doesNotMatch(ps, /& \$NodeBin\s+-e\b/, "PowerShell 5.1 does not inline Node code with quote-sensitive array keys");
 assert.match(sh, /runtime\/source-receipt\.json/);
 assert.match(ps, /runtime\\source-receipt\.json/);
 assert.doesNotMatch(sh, /archive\/refs\/tags\//);

@@ -1,0 +1,3 @@
+# Runtime manifest hashes are byte-bound, including on Windows checkouts.
+* text=auto eol=lf
+runtime/files/** -text

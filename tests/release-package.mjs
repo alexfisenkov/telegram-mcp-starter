@@ -3,12 +3,13 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync,mkdirSync,writeFileSync,readFileSync,rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join,dirname } from 'node:path';
-import { packRelease,verifyRelease,isReleaseSourcePath,safeRelative,RUNTIME_SOURCE_PATHS } from '../tools/pack-release.mjs';
+import { packRelease,verifyRelease,isReleaseSourcePath,safeRelative,RUNTIME_SOURCE_PATHS,tarListingLines } from '../tools/pack-release.mjs';
 const base=mkdtempSync(join(tmpdir(),'telegram source release-')),repo=join(base,'repo'),out=join(base,'out');
 mkdirSync(repo);mkdirSync(out);mkdirSync(join(base,'no-hooks'));
 function git(...args){return execFileSync('git',['-c','commit.gpgsign=false','-c','core.hooksPath='+join(base,'no-hooks'),'-C',repo,...args],{encoding:'utf8',stdio:['pipe','pipe','pipe']}).trim();}
 function put(path,text){mkdirSync(dirname(join(repo,path)),{recursive:true});writeFileSync(join(repo,path),text);}
 try{
+ assert.deepEqual(tarListingLines(Buffer.from('./\r\n./package.json\r\n')), ['./','./package.json']);
  git('init');git('config','user.name','Fixture');git('config','user.email','fixture@example.invalid');
  for(const name of ['package.json','package-lock.json','LICENSE','THIRD_PARTY_NOTICES.md','runtime/manifest.json','runtime/LICENSE','tools/apply-patches.mjs',...RUNTIME_SOURCE_PATHS])put(name,'synthetic public source\n');
  put('.env','SYNTHETIC_PRIVATE_STATE_MUST_NOT_SHIP\n');put('session.fixture','SYNTHETIC_STATE\n');put('gateway/owner.config','not public release input\n');

@@ -174,8 +174,18 @@ try {
     $SourcePackage = Get-Content (Join-Path $StagedServer "package.json") -Raw | ConvertFrom-Json
     if ($SourcePackage.version -ne "2.0.0") { throw "Ожидалась версия исходников 2.0.0, получена $($SourcePackage.version)." }
     if ($SourcePackage.overrides.telegram -ne "npm:teleproto@1.229.0") { throw "Исходники должны закреплять override telegram: npm:teleproto@1.229.0." }
-    $LockCheckScript = 'const p=require(process.argv[1]); process.stdout.write(JSON.stringify({package:p.packages?.["node_modules/@overpod/mcp-telegram"]?.version,teleproto:p.packages?.["node_modules/@overpod/mcp-telegram/node_modules/telegram"]?.version,playwright:p.packages?.["node_modules/playwright"]?.version}));'
-    $LockJson = & $NodeBin -e $LockCheckScript (Join-Path $StagedServer "package-lock.json")
+    $LockReaderScript = @'
+const fs = require("node:fs");
+const p = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+process.stdout.write(JSON.stringify({
+  package: p.packages?.["node_modules/@overpod/mcp-telegram"]?.version,
+  teleproto: p.packages?.["node_modules/@overpod/mcp-telegram/node_modules/telegram"]?.version,
+  playwright: p.packages?.["node_modules/playwright"]?.version,
+}));
+'@
+    $LockReaderPath = Join-Path $StageRoot "read-lockfile.cjs"
+    Set-Content -LiteralPath $LockReaderPath -Value $LockReaderScript -Encoding Ascii
+    $LockJson = & $NodeBin $LockReaderPath (Join-Path $StagedServer "package-lock.json")
     if ($LASTEXITCODE -ne 0) { throw "Не удалось прочитать закреплённые версии из package-lock.json." }
     $LockInfo = $LockJson | ConvertFrom-Json
     if ($LockInfo.package -ne $PkgVersion) { throw "Lockfile закрепляет $PkgName@$($LockInfo.package), ожидалась $PkgVersion." }
