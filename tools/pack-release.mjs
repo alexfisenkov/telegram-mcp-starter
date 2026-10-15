@@ -4,6 +4,7 @@ import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSy
 import { tmpdir } from 'node:os';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { gzipSync } from 'node:zlib';
 
 export const SCHEMA = 'telegram-mcp-starter-source-release-v1';
 export const SOURCE_REPOSITORY = 'alexfisenkov/telegram-mcp-starter';
@@ -32,6 +33,34 @@ function git(root, args) { return execFileSync('git',['-C',root,...args],{maxBuf
 function below(root,path) { const r=relative(root,path);return r===''||(!r.startsWith(`..${sep}`)&&r!=='..'&&!isAbsolute(r)); }
 function tar(args) { return execFileSync('tar',args,{maxBuffer:MAX_BYTES,timeout:60000,env:{...process.env,COPYFILE_DISABLE:'1'}}); }
 export function tarListingLines(bytes) { return bytes.toString().split(/\r?\n/).filter(Boolean); }
+// Emit canonical USTAR headers instead of inheriting host filesystem modes.
+// In particular, Windows does not preserve POSIX writeFile mode arguments.
+function writeSourceArchive(stage, rows, output) {
+  const chunks = [];
+  let total = 0;
+  for (const row of [...rows, {path:'manifest.json',mode:'100644'}]) {
+    if (!safeRelative(row.path) || Buffer.byteLength(row.path) > 100) throw new Error('Unsupported USTAR source path');
+    const body = readFileSync(join(stage,row.path));
+    total += body.length;
+    if (total > MAX_BYTES) throw new Error('Oversized release');
+    const header = Buffer.alloc(512);
+    header.write(row.path,0,100,'utf8');
+    const octal = (value, offset, length) => {
+      const valueText=value.toString(8);
+      if(valueText.length>=length)throw new Error('USTAR numeric field overflow');
+      header.write(valueText.padStart(length-1,'0')+'\0',offset,length,'ascii');
+    };
+    octal(row.mode==='100755'?0o755:0o644,100,8);
+    octal(0,108,8);octal(0,116,8);octal(body.length,124,12);octal(0,136,12);
+    header.fill(32,148,156);header[156]=48;
+    header.write('ustar\0',257,6,'ascii');header.write('00',263,2,'ascii');
+    const checksum=header.reduce((sum,value)=>sum+value,0).toString(8).padStart(6,'0');
+    header.write(checksum+'\0 ',148,8,'ascii');
+    chunks.push(header,body,Buffer.alloc((512-body.length%512)%512));
+  }
+  chunks.push(Buffer.alloc(1024));
+  writeFileSync(output,gzipSync(Buffer.concat(chunks),{level:9}),{flag:'wx',mode:0o644});
+}
 export function packRelease(repoPath, outputPath) {
   const root=realpathSync(repoPath), output=resolve(outputPath);
   if (existsSync(output)) throw new Error('Refusing to overwrite an existing release');
@@ -61,7 +90,7 @@ export function packRelease(repoPath, outputPath) {
     files.push({path:'.VERSION',sha256:digest(version),bytes:version.length,mode:'100644'});
     const manifest={schema:SCHEMA,sourceRepository:SOURCE_REPOSITORY,sourceCommit,files};
     writeFileSync(join(stage,'manifest.json'),JSON.stringify(manifest,null,2)+'\n',{flag:'wx',mode:0o644});
-    tar(['-czf',partial,'-C',stage,'.']);verifyRelease(partial,{expectedCommit:sourceCommit});
+    writeSourceArchive(stage,files,partial);verifyRelease(partial,{expectedCommit:sourceCommit});
     if(existsSync(finalPath))throw new Error('Release destination appeared concurrently');
     renameSync(partial,finalPath);return manifest;
   } finally {rmSync(stage,{recursive:true,force:true});rmSync(partial,{force:true});}
@@ -76,7 +105,8 @@ export function verifyRelease(archivePath,{expectedCommit}={}) {
   const members=[], modes=new Map();
   for(let i=0;i<names.length;i++){const name=names[i];const n=name.startsWith('./')?name.slice(2):name;if(n==='')continue;const check=n.endsWith('/')?n.slice(0,-1):n;if(!safeRelative(check))throw new Error('Unsafe archive member');if(n.endsWith('/'))continue;members.push(n);modes.set(n,listing[i].slice(0,10));}
   if(new Set(members).size!==members.length)throw new Error('Duplicate archive member');
-  const bytes=tar(['-xOzf',archive,'./manifest.json']);if(bytes.length>2*1024*1024)throw new Error('Oversized manifest');
+  const memberName=path=>names.find(name=>(name.startsWith('./')?name.slice(2):name)===path);
+  const bytes=tar(['-xOzf',archive,memberName('manifest.json')??'./manifest.json']);if(bytes.length>2*1024*1024)throw new Error('Oversized manifest');
   const m=JSON.parse(bytes);
   if(m.schema!==SCHEMA||m.sourceRepository!==SOURCE_REPOSITORY||!SHA.test(m.sourceCommit)||expectedCommit&&m.sourceCommit!==expectedCommit)throw new Error('Release identity mismatch');
   if(!Array.isArray(m.files)||!m.files.length||m.files.length>500)throw new Error('Invalid file inventory');
@@ -85,11 +115,11 @@ export function verifyRelease(archivePath,{expectedCommit}={}) {
     if(!row||!safeRelative(row.path)||expected.has(row.path)||row.path!=='.VERSION'&&!isReleaseSourcePath(row.path)||!H256.test(row.sha256)||!Number.isSafeInteger(row.bytes)||row.bytes<0||!['100644','100755'].includes(row.mode))throw new Error('Invalid manifest row');
     total+=row.bytes;if(total>MAX_BYTES)throw new Error('Oversized release');expected.add(row.path);
     if(modes.get(row.path)!==(row.mode==='100755'?'-rwxr-xr-x':'-rw-r--r--'))throw new Error(`Release mode mismatch: ${row.path}`);
-    const body=tar(['-xOzf',archive,'./'+row.path]);if(body.length!==row.bytes||digest(body)!==row.sha256)throw new Error(`Release checksum mismatch: ${row.path}`);
+    const body=tar(['-xOzf',archive,memberName(row.path)??'./'+row.path]);if(body.length!==row.bytes||digest(body)!==row.sha256)throw new Error(`Release checksum mismatch: ${row.path}`);
   }
   if([...expected].sort().join('\n')!==members.slice().sort().join('\n'))throw new Error('Unexpected or missing archive files');
   for(const name of [...REQUIRED,'.VERSION'])if(!expected.has(name))throw new Error(`Missing release input: ${name}`);
-  if(tar(['-xOzf',archive,'./.VERSION']).toString()!==m.sourceCommit+'\n')throw new Error('Immutable version mismatch');
+  if(tar(['-xOzf',archive,memberName('.VERSION')??'./.VERSION']).toString()!==m.sourceCommit+'\n')throw new Error('Immutable version mismatch');
   return {...m,archiveSha256:digest(readFileSync(archive)),manifestSha256:digest(bytes)};
 }
 if(process.argv[1]&&realpathSync(process.argv[1])===realpathSync(fileURLToPath(import.meta.url))){

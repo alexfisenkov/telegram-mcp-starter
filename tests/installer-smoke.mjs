@@ -22,6 +22,7 @@ writeFileSync(npmUserConfig, "", "utf8");
 writeFileSync(npmGlobalConfig, "", "utf8");
 const sourceRepo = "alexfisenkov/telegram-mcp-starter";
 const filesToCopy = [
+  '.gitattributes',
   "package.json", "package-lock.json", "runtime",
   "tools/apply-patches.mjs", "tools/doctor.mjs", "tools/merge-config.mjs",
   "tools/daemon-setup.sh", "tools/daemon-setup.ps1",

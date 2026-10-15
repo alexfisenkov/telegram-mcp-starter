@@ -16,11 +16,12 @@ try{
  git('add','.');git('commit','-m','Synthetic release fixture');
  const archive=join(out,'source.tar.gz');const m=packRelease(repo,archive);const v=verifyRelease(archive,{expectedCommit:m.sourceCommit});
  assert.equal(v.sourceRepository,'alexfisenkov/telegram-mcp-starter');assert.equal(v.sourceCommit,git('rev-parse','HEAD'));
+ const repeated=join(out,'same-source.tar.gz');packRelease(repo,repeated);assert.deepEqual(readFileSync(repeated),readFileSync(archive),'same source yields the same canonical archive on every host');
  assert(!m.files.some(f=>['.env','session.fixture','gateway/owner.config'].includes(f.path)),'private/operational source excluded');
  assert.throws(()=>packRelease(repo,archive),/overwrite|already exists/);assert.throws(()=>packRelease(repo,join(repo,'bad.tar.gz')),/outside/);
  assert.throws(()=>verifyRelease(archive,{expectedCommit:'0'.repeat(40)}),/identity mismatch/);
  const stage=join(base,'tamper');mkdirSync(stage);execFileSync('tar',['-xzf',archive,'-C',stage]);writeFileSync(join(stage,'package.json'),'altered\n');
- const damaged=join(out,'damaged.tar.gz');execFileSync('tar',['-czf',damaged,'-C',stage,'.']);assert.throws(()=>verifyRelease(damaged),/checksum mismatch/);
+ const damaged=join(out,'damaged.tar.gz');execFileSync('tar',['-czf',damaged,'-C',stage,'.']);assert.throws(()=>verifyRelease(damaged),/checksum mismatch|mode mismatch/);
  for(const path of ['../file','runtime/../outside','/etc/passwd','runtime\\file','runtime/files/dist/../../x','runtime/files/dist/x\n.js'])assert.equal(safeRelative(path),false);
  for(const path of ['.env','node_modules/pkg/code.js','gateway/private.js','patches/owner.copy','runtime/files/dist/../../x.js','runtime/files/dist/unknown.js'])assert.equal(isReleaseSourcePath(path),false);
  const oid=execFileSync('git',['-C',repo,'hash-object','-w','--stdin'],{input:'../../outside',encoding:'utf8'}).trim();

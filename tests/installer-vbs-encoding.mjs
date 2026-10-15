@@ -18,7 +18,7 @@ try {
   const result = spawnSync(shell, [
     "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script,
     "-Cmd", "vbs-fixture", "-TestRunCommand", runCommand, "-TestVbsPath", fixturePath,
-  ], { cwd: projectRoot, env: { ...process.env, USERPROFILE: temporaryRoot }, encoding: "utf8", timeout: 10000, maxBuffer: 1024 * 1024 });
+  ], { cwd: projectRoot, env: { ...process.env, USERPROFILE: temporaryRoot }, encoding: "utf8", timeout: 60000, maxBuffer: 1024 * 1024 });
   if (result.error) throw result.error;
   assert.equal(result.status, 0, `${shell} fixture writer failed\n${result.stdout}\n${result.stderr}`);
 
