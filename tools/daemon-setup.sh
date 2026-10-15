@@ -23,17 +23,55 @@ CMD="${1:-install}"
 BASE="$HOME/.telegram-mcp"
 RUN="$BASE/run.sh"
 LOG="$BASE/daemon.log"
+OWNER_LOCK="$BASE/daemon.lock"
 
 if [[ ! -x "$RUN" ]]; then
   echo "✗ Нет $RUN — сначала запустите install.sh" >&2
   exit 1
 fi
 
+xml_escape() {
+  local value="$1"
+  value="${value//&/&amp;}"
+  value="${value//</&lt;}"
+  value="${value//>/&gt;}"
+  value="${value//\"/&quot;}"
+  value="${value//\'/&apos;}"
+  printf '%s' "$value"
+}
+
+read_owner_pid() {
+  local pid=""
+  if [[ -f "$OWNER_LOCK" ]]; then
+    IFS= read -r pid < "$OWNER_LOCK" || true
+  fi
+  [[ "$pid" =~ ^[1-9][0-9]*$ ]] && printf '%s' "$pid"
+}
+
+wait_for_owner_restart() {
+  local old_pid="$1" new_pid="" i
+  for ((i = 0; i < 100; i += 1)); do
+    new_pid="$(read_owner_pid || true)"
+    if [[ -n "$old_pid" ]] && kill -0 "$old_pid" 2>/dev/null; then
+      sleep 0.2
+      continue
+    fi
+    if [[ -n "$new_pid" && ( -z "$old_pid" || "$new_pid" != "$old_pid" ) ]] && kill -0 "$new_pid" 2>/dev/null; then
+      return 0
+    fi
+    sleep 0.2
+  done
+  echo "✗ Не подтвердился новый владелец Telegram после перезапуска службы. Проверьте $OWNER_LOCK и лог $LOG." >&2
+  return 1
+}
+
 case "$(uname -s)" in
   Darwin)
     LABEL="com.telegram-mcp.daemon"
     PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
     DOMAIN="gui/$(id -u)"
+    RUN_XML="$(xml_escape "$RUN")"
+    LOG_XML="$(xml_escape "$LOG")"
     case "$CMD" in
       install)
         mkdir -p "$HOME/Library/LaunchAgents"
@@ -45,13 +83,13 @@ case "$(uname -s)" in
   <key>Label</key><string>$LABEL</string>
   <key>ProgramArguments</key>
   <array>
-    <string>$RUN</string>
+    <string>$RUN_XML</string>
     <string>serve</string>
   </array>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><true/>
-  <key>StandardOutPath</key><string>$LOG</string>
-  <key>StandardErrorPath</key><string>$LOG</string>
+  <key>StandardOutPath</key><string>$LOG_XML</string>
+  <key>StandardErrorPath</key><string>$LOG_XML</string>
 </dict>
 </plist>
 PLIST_EOF
@@ -66,7 +104,10 @@ PLIST_EOF
         echo "✓ Сервис остановлен и удалён"
         ;;
       restart)
-        launchctl kickstart -k "$DOMAIN/$LABEL" && echo "✓ Сервис перезапущен"
+        OLD_OWNER_PID="$(read_owner_pid || true)"
+        launchctl kickstart -k "$DOMAIN/$LABEL"
+        wait_for_owner_restart "$OLD_OWNER_PID"
+        echo "✓ Служба перезапущена; новый владелец PID $(read_owner_pid) подтверждён"
         ;;
       status)
         launchctl print "$DOMAIN/$LABEL" 2>/dev/null | sed -n '1,12p' || echo "Сервис не установлен"
@@ -80,6 +121,9 @@ PLIST_EOF
   Linux)
     UNIT_DIR="$HOME/.config/systemd/user"
     UNIT="$UNIT_DIR/telegram-mcp.service"
+    RUN_UNIT="${RUN//\\/\\\\}"
+    RUN_UNIT="${RUN_UNIT//\"/\\\"}"
+    RUN_UNIT="${RUN_UNIT//%/%%}"
     case "$CMD" in
       install)
         mkdir -p "$UNIT_DIR"
@@ -88,7 +132,7 @@ PLIST_EOF
 Description=Telegram MCP daemon (connection owner)
 
 [Service]
-ExecStart=$RUN serve
+ExecStart="$RUN_UNIT" serve
 Restart=on-failure
 RestartSec=3
 
@@ -107,7 +151,11 @@ UNIT_EOF
         echo "✓ Сервис остановлен и удалён"
         ;;
       restart)
-        systemctl --user restart telegram-mcp.service && echo "✓ Сервис перезапущен"
+        OLD_OWNER_PID="$(read_owner_pid || true)"
+        systemctl --user restart telegram-mcp.service
+        systemctl --user is-active --quiet telegram-mcp.service
+        wait_for_owner_restart "$OLD_OWNER_PID"
+        echo "✓ Служба перезапущена; новый владелец PID $(read_owner_pid) подтверждён"
         ;;
       status)
         systemctl --user status telegram-mcp.service --no-pager 2>/dev/null | head -12 || echo "Сервис не установлен"

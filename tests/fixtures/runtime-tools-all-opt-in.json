@@ -1,0 +1,6068 @@
+{
+  "count": 193,
+  "packageVersion": "1.43.1",
+  "profile": "all-opt-in",
+  "schema": "telegram-mcp-starter-tool-schema-v1",
+  "tools": [
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "future": {
+            "description": "Hide your views for the next 25 minutes",
+            "type": "boolean"
+          },
+          "past": {
+            "description": "Remove your views from stories you already watched",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "name": "telegram-activate-stealth-mode"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "firstName": {
+            "description": "First name for the contact",
+            "type": "string"
+          },
+          "lastName": {
+            "description": "Last name for the contact",
+            "type": "string"
+          },
+          "phone": {
+            "description": "Phone number for the contact",
+            "type": "string"
+          },
+          "userId": {
+            "description": "User ID or username to add",
+            "type": "string"
+          }
+        },
+        "required": [
+          "userId",
+          "firstName"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-add-contact"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "approved": {
+            "description": "true to approve the join request, false to deny",
+            "type": "boolean"
+          },
+          "chatId": {
+            "description": "Chat ID or username where the join request is pending",
+            "type": "string"
+          },
+          "userId": {
+            "description": "User ID or username of the requesting user",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId",
+          "userId",
+          "approved"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-approve-join-request"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "archive": {
+            "description": "true to archive, false to unarchive",
+            "type": "boolean"
+          },
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId",
+          "archive"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-archive-chat"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "userId": {
+            "description": "User ID or username to ban",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId",
+          "userId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-ban-user"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "userId": {
+            "description": "User ID or username to block",
+            "type": "string"
+          }
+        },
+        "required": [
+          "userId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-block-user"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "canceled": {
+            "description": "true = cancel the subscription; false = restore a canceled subscription",
+            "type": "boolean"
+          },
+          "chatId": {
+            "description": "The peer the subscription belongs to — 'me' for your own subscriptions or a bot/channel you own",
+            "type": "string"
+          },
+          "subscriptionId": {
+            "description": "Subscription ID (from telegram-get-stars-subscriptions)",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId",
+          "subscriptionId",
+          "canceled"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-change-stars-subscription"
+    },
+    {
+      "annotations": {
+        "destructiveHint": true,
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username. If provided, clears draft only for this chat",
+            "type": "string"
+          },
+          "confirmAllChats": {
+            "description": "Must be true to wipe drafts across ALL chats when chatId is omitted",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "name": "telegram-clear-drafts"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {},
+        "type": "object"
+      },
+      "name": "telegram-clear-recent-emoji-statuses"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "messageId": {
+            "description": "Message ID of the poll to close",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "chatId",
+          "messageId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-close-poll"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat/channel ID (for chat gifts, required with savedId)",
+            "type": "string"
+          },
+          "msgId": {
+            "description": "Message ID of the gift (from your DMs) — for personal gifts",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          },
+          "savedId": {
+            "description": "Saved gift ID — for chat gifts, required with chatId",
+            "pattern": "^\\d+$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "name": "telegram-convert-star-gift"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "message": {
+            "description": "Pre-filled message text shown to users who click the link",
+            "maxLength": 4096,
+            "minLength": 1,
+            "type": "string"
+          },
+          "parseMode": {
+            "description": "Format message as Markdown or HTML",
+            "enum": [
+              "md",
+              "html"
+            ],
+            "type": "string"
+          },
+          "title": {
+            "description": "Admin-facing label (not visible to visitors, max 32 chars)",
+            "maxLength": 32,
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-create-business-chat-link"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "bots": {
+            "description": "Include all bots",
+            "type": "boolean"
+          },
+          "broadcasts": {
+            "description": "Include all channels",
+            "type": "boolean"
+          },
+          "contacts": {
+            "description": "Include all contacts",
+            "type": "boolean"
+          },
+          "emoticon": {
+            "description": "Single emoji icon for the folder",
+            "maxLength": 2,
+            "type": "string"
+          },
+          "excludeArchived": {
+            "description": "Exclude archived chats",
+            "type": "boolean"
+          },
+          "excludeMuted": {
+            "description": "Exclude muted chats",
+            "type": "boolean"
+          },
+          "excludePeers": {
+            "description": "Chat IDs/usernames to explicitly exclude (max 100)",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "excludeRead": {
+            "description": "Exclude read chats",
+            "type": "boolean"
+          },
+          "groups": {
+            "description": "Include all groups",
+            "type": "boolean"
+          },
+          "includePeers": {
+            "description": "Chat IDs/usernames to explicitly include (max 100)",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "nonContacts": {
+            "description": "Include all non-contacts",
+            "type": "boolean"
+          },
+          "pinnedPeers": {
+            "description": "Chats to pin at top of this folder (max 5)",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 5,
+            "type": "array"
+          },
+          "title": {
+            "description": "Folder name (max 12 chars)",
+            "maxLength": 12,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-create-folder"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "description": {
+            "description": "Group description",
+            "type": "string"
+          },
+          "forum": {
+            "default": false,
+            "description": "Enable topics (requires supergroup)",
+            "type": "boolean"
+          },
+          "supergroup": {
+            "default": false,
+            "description": "Create as supergroup (supports >200 members, admin features)",
+            "type": "boolean"
+          },
+          "title": {
+            "description": "Group name",
+            "type": "string"
+          },
+          "users": {
+            "description": "Usernames or IDs to invite",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "title",
+          "users"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-create-group"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "expireDate": {
+            "description": "Link expiration as Unix timestamp",
+            "type": "number"
+          },
+          "memberLimit": {
+            "description": "Max number of users who can join via this link",
+            "type": "number"
+          },
+          "replacePrimary": {
+            "description": "Revoke the chat's primary (permanent) link and create a new primary one with these settings, instead of adding an extra link",
+            "type": "boolean"
+          },
+          "requestApproval": {
+            "description": "Require admin approval to join",
+            "type": "boolean"
+          },
+          "title": {
+            "description": "Label for the invite link (only visible to admins). Telegram may drop it for the primary link",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-create-invite-link"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "answers": {
+            "description": "Answer options (2-10)",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "minItems": 2,
+            "type": "array"
+          },
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "correctAnswer": {
+            "description": "Index of correct answer (0-based, required for quiz mode)",
+            "type": "number"
+          },
+          "multipleChoice": {
+            "default": false,
+            "description": "Allow multiple answers",
+            "type": "boolean"
+          },
+          "question": {
+            "description": "Poll question",
+            "type": "string"
+          },
+          "quiz": {
+            "default": false,
+            "description": "Quiz mode (one correct answer)",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "chatId",
+          "question",
+          "answers"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-create-poll"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username of the forum supergroup",
+            "type": "string"
+          },
+          "iconColor": {
+            "anyOf": [
+              {
+                "const": 7322096,
+                "type": "number"
+              },
+              {
+                "const": 16766590,
+                "type": "number"
+              },
+              {
+                "const": 13338331,
+                "type": "number"
+              },
+              {
+                "const": 9367192,
+                "type": "number"
+              },
+              {
+                "const": 16749490,
+                "type": "number"
+              },
+              {
+                "const": 16225862,
+                "type": "number"
+              }
+            ],
+            "description": "Optional icon color (one of 7322096, 16766590, 13338331, 9367192, 16749490, 16225862)"
+          },
+          "iconEmojiId": {
+            "description": "Optional custom emoji document ID for the icon (numeric string)",
+            "pattern": "^\\d+$",
+            "type": "string"
+          },
+          "title": {
+            "description": "Topic title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId",
+          "title"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-create-topic"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "slug": {
+            "description": "Link slug to delete (from t.me/m/<slug>)",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-delete-business-chat-link"
+    },
+    {
+      "annotations": {
+        "destructiveHint": true,
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username (channel)",
+            "type": "string"
+          },
+          "messageId": {
+            "description": "Message ID whose fact-check to remove",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "chatId",
+          "messageId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-delete-fact-check"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "id": {
+            "description": "Folder ID to delete (≥ 2)",
+            "maximum": 9007199254740991,
+            "minimum": 2,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-delete-folder"
+    },
+    {
+      "annotations": {
+        "destructiveHint": true,
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "messageIds": {
+            "description": "Array of message IDs to delete",
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "chatId",
+          "messageIds"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-delete-message"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "photoIds": {
+            "description": "Array of photo IDs (stringified long) to delete from your profile photo history",
+            "items": {
+              "pattern": "^\\d{1,20}$",
+              "type": "string"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "photoIds"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-delete-profile-photo"
+    },
+    {
+      "annotations": {
+        "destructiveHint": true,
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "messageIds": {
+            "description": "Array of scheduled message IDs to delete (1-100)",
+            "items": {
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991,
+              "type": "integer"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "chatId",
+          "messageIds"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-delete-scheduled"
+    },
+    {
+      "annotations": {
+        "destructiveHint": true,
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "default": "me",
+            "description": "Peer owning the stories",
+            "type": "string"
+          },
+          "confirm": {
+            "const": true,
+            "description": "Pass true to confirm irreversible deletion",
+            "type": "boolean"
+          },
+          "ids": {
+            "description": "Story IDs to delete (1–100 per request)",
+            "items": {
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991,
+              "type": "integer"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "ids",
+          "confirm"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-delete-stories"
+    },
+    {
+      "annotations": {
+        "destructiveHint": true,
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username of the forum supergroup",
+            "type": "string"
+          },
+          "topicId": {
+            "description": "Topic ID to delete",
+            "type": "number"
+          }
+        },
+        "required": [
+          "chatId",
+          "topicId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-delete-topic"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "downloadPath": {
+            "description": "Absolute path to save file",
+            "type": "string"
+          },
+          "messageId": {
+            "description": "Message ID containing media",
+            "type": "number"
+          },
+          "richIndex": {
+            "description": "Rich message media: 0-based index over richMedia.photos then richMedia.documents (the i in [rich-медиа i …]). Omit for ordinary media.",
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "chatId",
+          "messageId",
+          "downloadPath"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-download-media"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "message": {
+            "description": "New pre-filled message text",
+            "maxLength": 4096,
+            "minLength": 1,
+            "type": "string"
+          },
+          "parseMode": {
+            "description": "Format message as Markdown or HTML",
+            "enum": [
+              "md",
+              "html"
+            ],
+            "type": "string"
+          },
+          "slug": {
+            "description": "Link slug — the last path segment of t.me/m/<slug>",
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": {
+            "description": "New admin-facing label (max 32 chars)",
+            "maxLength": 32,
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "message"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-edit-business-chat-link"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username (channel)",
+            "type": "string"
+          },
+          "messageId": {
+            "description": "Message ID to annotate",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          },
+          "parseMode": {
+            "description": "Text format (currently ignored — plain text only)",
+            "enum": [
+              "md",
+              "html"
+            ],
+            "type": "string"
+          },
+          "text": {
+            "description": "Fact-check annotation text (1-1024 chars)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId",
+          "messageId",
+          "text"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-edit-fact-check"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "bots": {
+            "type": "boolean"
+          },
+          "broadcasts": {
+            "type": "boolean"
+          },
+          "contacts": {
+            "type": "boolean"
+          },
+          "emoticon": {
+            "description": "New emoji icon",
+            "maxLength": 2,
+            "type": "string"
+          },
+          "excludeArchived": {
+            "type": "boolean"
+          },
+          "excludeMuted": {
+            "type": "boolean"
+          },
+          "excludePeers": {
+            "description": "Replace excludePeers list entirely",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "excludeRead": {
+            "type": "boolean"
+          },
+          "groups": {
+            "type": "boolean"
+          },
+          "id": {
+            "description": "Folder ID (≥ 2; 0 = All Chats, 1 = Archive are system folders)",
+            "maximum": 9007199254740991,
+            "minimum": 2,
+            "type": "integer"
+          },
+          "includePeers": {
+            "description": "Replace includePeers list entirely",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "nonContacts": {
+            "type": "boolean"
+          },
+          "pinnedPeers": {
+            "description": "Replace pinnedPeers list entirely",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 5,
+            "type": "array"
+          },
+          "title": {
+            "description": "New folder name (max 12 chars)",
+            "maxLength": 12,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-edit-folder"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "description": {
+            "description": "New group description (supergroups only)",
+            "type": "string"
+          },
+          "photoPath": {
+            "description": "Absolute path to new group photo image file",
+            "type": "string"
+          },
+          "title": {
+            "description": "New group title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-edit-group"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "messageId": {
+            "description": "ID of the message to edit",
+            "type": "number"
+          },
+          "text": {
+            "description": "New message text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId",
+          "messageId",
+          "text"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-edit-message"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "allowUserIds": {
+            "description": "Required when privacy='selected'",
+            "items": {
+              "pattern": "^\\d{1,19}$",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "caption": {
+            "description": "New caption; pass '' to clear",
+            "type": "string"
+          },
+          "chatId": {
+            "default": "me",
+            "description": "Peer owning the story",
+            "type": "string"
+          },
+          "disallowUserIds": {
+            "description": "Blocked user IDs (ignored for 'selected')",
+            "items": {
+              "pattern": "^\\d{1,19}$",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "filePath": {
+            "description": "Absolute path to replacement media",
+            "type": "string"
+          },
+          "parseMode": {
+            "description": "Caption parse mode",
+            "enum": [
+              "md",
+              "html"
+            ],
+            "type": "string"
+          },
+          "privacy": {
+            "description": "New privacy setting",
+            "enum": [
+              "everyone",
+              "contacts",
+              "close_friends",
+              "selected"
+            ],
+            "type": "string"
+          },
+          "storyId": {
+            "description": "ID of the story to edit",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          },
+          "type": {
+            "description": "Override auto-detected media type for new file",
+            "enum": [
+              "photo",
+              "video"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "storyId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-edit-story"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username of the forum supergroup",
+            "type": "string"
+          },
+          "closed": {
+            "description": "Close (true) or reopen (false) the topic",
+            "type": "boolean"
+          },
+          "hidden": {
+            "description": "Hide (true) or show (false) the General topic",
+            "type": "boolean"
+          },
+          "iconEmojiId": {
+            "description": "New custom emoji document ID for the icon (numeric string)",
+            "pattern": "^\\d+$",
+            "type": "string"
+          },
+          "title": {
+            "description": "New topic title",
+            "type": "string"
+          },
+          "topicId": {
+            "description": "Topic ID (get from telegram-list-topics)",
+            "type": "number"
+          }
+        },
+        "required": [
+          "chatId",
+          "topicId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-edit-topic"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Peer who posted the story",
+            "type": "string"
+          },
+          "storyId": {
+            "description": "Story ID to get the link for",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "chatId",
+          "storyId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-export-story-link"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "fromChatId": {
+            "description": "Source chat ID or username",
+            "type": "string"
+          },
+          "messageIds": {
+            "description": "Array of message IDs to forward",
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "toChatId": {
+            "description": "Destination chat ID or username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "fromChatId",
+          "toChatId",
+          "messageIds"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-forward-message"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username (supergroup or channel)",
+            "type": "string"
+          },
+          "limit": {
+            "default": 20,
+            "description": "Number of events to return (1-100)",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "q": {
+            "description": "Optional text filter for events",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-admin-log"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "hidden": {
+            "description": "Fetch stories from hidden/archived peers instead of the main feed",
+            "type": "boolean"
+          },
+          "next": {
+            "description": "Load the next page (use with state from a prior response)",
+            "type": "boolean"
+          },
+          "state": {
+            "description": "Pagination state token returned by a previous call",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "name": "telegram-get-all-stories"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {},
+        "type": "object"
+      },
+      "name": "telegram-get-available-star-gifts"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chat": {
+            "description": "Channel or supergroup to query — id, @username, or display name fragment",
+            "type": "string"
+          },
+          "gifts": {
+            "description": "If true, return only gift boosts",
+            "type": "boolean"
+          },
+          "limit": {
+            "description": "Max boosts to return per page (default 50, max 100)",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "offset": {
+            "description": "Pagination cursor returned as nextOffset from the previous call",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chat"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-boosts-list"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chat": {
+            "description": "Channel or supergroup to query — id, @username, or display name fragment",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chat"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-boosts-status"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Broadcast channel ID or username",
+            "type": "string"
+          },
+          "dark": {
+            "default": false,
+            "description": "Prefer dark-theme palette when Telegram renders graphs",
+            "type": "boolean"
+          },
+          "includeGraphs": {
+            "default": false,
+            "description": "Include raw graph data for each series (growth, followers, interactions, etc.). Default false — returns only aggregate numbers + metadata",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "chatId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-broadcast-stats"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {},
+        "type": "object"
+      },
+      "name": "telegram-get-business-chat-links"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Channel or supergroup ID or username",
+            "type": "string"
+          },
+          "force": {
+            "description": "Force request updates even if the client hasn't processed previous ones (rarely needed)",
+            "type": "boolean"
+          },
+          "limit": {
+            "description": "Max updates per batch (default 100)",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          },
+          "pts": {
+            "description": "Last known per-channel pts",
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "chatId",
+          "pts"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-channel-updates"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {},
+        "type": "object"
+      },
+      "name": "telegram-get-chat-folders"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-chat-info"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "limit": {
+            "default": 50,
+            "description": "Number of members to return",
+            "type": "number"
+          }
+        },
+        "required": [
+          "chatId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-chat-members"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "limit": {
+            "default": 20,
+            "description": "Number of contact requests to return",
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "name": "telegram-get-contact-requests"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "limit": {
+            "default": 50,
+            "description": "Number of contacts to return",
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "name": "telegram-get-contacts"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Channel ID or @username that contains the post",
+            "type": "string"
+          },
+          "messageId": {
+            "description": "ID of the channel post to get discussion info for",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "chatId",
+          "messageId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-discussion-message"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {},
+        "type": "object"
+      },
+      "name": "telegram-get-drafts"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username (channel)",
+            "type": "string"
+          },
+          "messageIds": {
+            "description": "Message IDs to get fact-checks for (1-100)",
+            "items": {
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991,
+              "type": "integer"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "chatId",
+          "messageIds"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-fact-check"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {},
+        "type": "object"
+      },
+      "name": "telegram-get-global-privacy-settings"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chat": {
+            "description": "Group/supergroup/channel that currently has an active group call — id, @username, or display name fragment",
+            "type": "string"
+          },
+          "limit": {
+            "description": "Max participants to include (default 0 — metadata only; use telegram-get-group-call-participants for pagination)",
+            "maximum": 500,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "chat"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-group-call"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chat": {
+            "description": "Group/supergroup/channel that currently has an active group call — id, @username, or display name fragment",
+            "type": "string"
+          },
+          "ids": {
+            "description": "Optional list of participant peer ids/@usernames to filter (max 100)",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "limit": {
+            "description": "Max participants to return in this page (default 100)",
+            "maximum": 500,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "offset": {
+            "description": "Pagination cursor from a previous response's nextOffset; omit for the first page",
+            "type": "string"
+          },
+          "sources": {
+            "description": "Optional list of numeric source ids (audio SSRC) to filter participants",
+            "items": {
+              "maximum": 9007199254740991,
+              "minimum": -9007199254740991,
+              "type": "integer"
+            },
+            "maxItems": 100,
+            "type": "array"
+          }
+        },
+        "required": [
+          "chat"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-group-call-participants"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {},
+        "type": "object"
+      },
+      "name": "telegram-get-groups-for-discussion"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {},
+        "type": "object"
+      },
+      "name": "telegram-get-installed-stickers"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "adminId": {
+            "description": "Admin user ID or username to list links for (default: current account)",
+            "type": "string"
+          },
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "limit": {
+            "default": 20,
+            "description": "Max links to return",
+            "type": "number"
+          }
+        },
+        "required": [
+          "chatId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-invite-links"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Supergroup ID or username",
+            "type": "string"
+          },
+          "dark": {
+            "default": false,
+            "description": "Prefer dark-theme palette when Telegram renders graphs",
+            "type": "boolean"
+          },
+          "includeGraphs": {
+            "default": false,
+            "description": "Include raw graph data for each series (growth, members, messages, actions, top hours, weekdays, etc.). Default false — returns only aggregate numbers + top lists",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "chatId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-megagroup-stats"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username where the message lives",
+            "type": "string"
+          },
+          "messageId": {
+            "description": "Message ID whose keyboard to inspect",
+            "type": "number"
+          }
+        },
+        "required": [
+          "chatId",
+          "messageId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-message-buttons"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username (channel or supergroup)",
+            "type": "string"
+          },
+          "messageId": {
+            "description": "ID of the message to link to",
+            "type": "number"
+          },
+          "thread": {
+            "default": false,
+            "description": "Link to the message thread instead of the message itself",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "chatId",
+          "messageId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-message-link"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Group chat ID or @username",
+            "type": "string"
+          },
+          "messageId": {
+            "description": "ID of the message to check read status for",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "chatId",
+          "messageId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-message-read-participants"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "appName": {
+            "description": "Mini app short name, as in t.me/<bot>/<appName>",
+            "type": "string"
+          },
+          "bot": {
+            "description": "Bot username or ID that owns the mini app",
+            "type": "string"
+          }
+        },
+        "required": [
+          "bot",
+          "appName"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-mini-app-info"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {},
+        "type": "object"
+      },
+      "name": "telegram-get-my-boosts"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-my-role"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Private chat ID or @username of the recipient",
+            "type": "string"
+          },
+          "messageId": {
+            "description": "ID of your outgoing message",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "chatId",
+          "messageId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-outbox-read-date"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {},
+        "type": "object"
+      },
+      "name": "telegram-get-paid-reaction-privacy"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chat": {
+            "description": "Peer to fetch stories from — user/channel id, @username, phone, or display name fragment",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chat"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-peer-stories"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "messageId": {
+            "description": "Message ID of the poll",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "chatId",
+          "messageId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-poll-results"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "limit": {
+            "default": 20,
+            "description": "Max voters to return",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "messageId": {
+            "description": "Message ID of the poll",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          },
+          "offset": {
+            "description": "Pagination offset from previous call",
+            "type": "string"
+          },
+          "optionIndex": {
+            "description": "Zero-based option index to filter by. Omit to get all voters",
+            "maximum": 9,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "chatId",
+          "messageId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-poll-voters"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "userId": {
+            "description": "User ID or username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "userId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-profile"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "entityId": {
+            "description": "User/Chat/Channel ID or username",
+            "type": "string"
+          },
+          "savePath": {
+            "description": "Absolute path to save file. If omitted, returns inline base64 image",
+            "type": "string"
+          },
+          "size": {
+            "description": "Photo size: 'small' (160x160) or 'big' (640x640). Default: big",
+            "enum": [
+              "small",
+              "big"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "entityId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-profile-photo"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "hash": {
+            "description": "Aggregate hash from a previous response (decimal string); omit for a fresh fetch",
+            "pattern": "^\\d+$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "name": "telegram-get-quick-replies"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "hash": {
+            "description": "Aggregate hash from a previous response (decimal string); omit for a fresh fetch",
+            "pattern": "^\\d+$",
+            "type": "string"
+          },
+          "ids": {
+            "description": "Optional list of message ids to fetch within the shortcut",
+            "items": {
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "shortcutId": {
+            "description": "Shortcut id from telegram-get-quick-replies",
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "shortcutId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-quick-reply-messages"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "messageId": {
+            "description": "Message ID to get reactions for",
+            "type": "number"
+          }
+        },
+        "required": [
+          "chatId",
+          "messageId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-reactions"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "limit": {
+            "default": 20,
+            "description": "Max number of reactions to return",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "name": "telegram-get-recent-reactions"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {},
+        "type": "object"
+      },
+      "name": "telegram-get-recent-stickers"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username (channel or linked discussion group)",
+            "type": "string"
+          },
+          "limit": {
+            "default": 20,
+            "description": "Number of replies to return",
+            "type": "number"
+          },
+          "messageId": {
+            "description": "ID of the message whose replies to fetch",
+            "type": "number"
+          }
+        },
+        "required": [
+          "chatId",
+          "messageId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-replies"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "limit": {
+            "default": 20,
+            "description": "Max dialogs to return",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "name": "telegram-get-saved-dialogs"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "limit": {
+            "description": "Max tracks to return per page (default 50, max 100)",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "offset": {
+            "description": "Pagination offset (default 0)",
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "user": {
+            "description": "User to query — id, @username, or display name fragment. Defaults to yourself",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "name": "telegram-get-saved-music"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "User or chat to fetch received gifts for — 'me' for self",
+            "type": "string"
+          },
+          "excludeLimited": {
+            "description": "Skip limited-edition gifts",
+            "type": "boolean"
+          },
+          "excludeSaved": {
+            "description": "Skip gifts the recipient chose to show",
+            "type": "boolean"
+          },
+          "excludeUnique": {
+            "description": "Skip unique gifts",
+            "type": "boolean"
+          },
+          "excludeUnlimited": {
+            "description": "Skip unlimited-edition gifts",
+            "type": "boolean"
+          },
+          "excludeUnsaved": {
+            "description": "Skip gifts the recipient chose to hide",
+            "type": "boolean"
+          },
+          "limit": {
+            "default": 20,
+            "description": "Max gifts per page",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "offset": {
+            "description": "Pagination cursor from a prior response's nextOffset",
+            "type": "string"
+          },
+          "sortByValue": {
+            "description": "Sort by Star value descending instead of date",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "chatId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-saved-star-gifts"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-scheduled"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {},
+        "type": "object"
+      },
+      "name": "telegram-get-sessions"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "peer": {
+            "description": "Peer whose Stars wallet to inspect — 'me'/'@me' or user id for self, or @username/id for a bot/channel you control",
+            "type": "string"
+          }
+        },
+        "required": [
+          "peer"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-stars-status"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Peer to query — 'me' for your own subscriptions, or a bot/channel you own",
+            "type": "string"
+          },
+          "missingBalance": {
+            "description": "If true, return only subscriptions with missing balance",
+            "type": "boolean"
+          },
+          "offset": {
+            "description": "Pagination cursor from a prior nextOffset",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-stars-subscriptions"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {},
+        "type": "object"
+      },
+      "name": "telegram-get-stars-topup-options"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "ascending": {
+            "description": "If true, return transactions in chronological (oldest first) order; default: newest first",
+            "type": "boolean"
+          },
+          "inbound": {
+            "description": "If true, return only inbound (credit) transactions",
+            "type": "boolean"
+          },
+          "limit": {
+            "description": "Max transactions per page (default 50, max 100)",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "offset": {
+            "description": "Pagination cursor — pass the nextOffset from a previous response; empty/undefined for first page",
+            "type": "string"
+          },
+          "outbound": {
+            "description": "If true, return only outbound (debit) transactions",
+            "type": "boolean"
+          },
+          "peer": {
+            "description": "Peer whose Stars transactions to fetch — 'me'/'@me' or user id for self, or @username/id for a bot/channel you control",
+            "type": "string"
+          },
+          "subscriptionId": {
+            "description": "If set, filter transactions to a single subscription id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "peer"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-stars-transactions"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {},
+        "type": "object"
+      },
+      "name": "telegram-get-state"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "shortName": {
+            "description": "Short name of the sticker set (e.g. 'AnimatedEmojis', 'HotCherry'). Find names via telegram-search-sticker-sets or from t.me/addstickers/<shortName> links",
+            "type": "string"
+          }
+        },
+        "required": [
+          "shortName"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-sticker-set"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "default": "me",
+            "description": "Peer whose archive to fetch",
+            "type": "string"
+          },
+          "limit": {
+            "default": 50,
+            "description": "Max stories to return (1–100, default 50)",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "offsetId": {
+            "default": 0,
+            "description": "Pagination offset: pass last story ID from previous page (0 to start)",
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "name": "telegram-get-stories-archive"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chat": {
+            "description": "Peer to fetch stories from — user/channel id, @username, phone, or display name fragment",
+            "type": "string"
+          },
+          "ids": {
+            "description": "Story IDs to fetch (1–100 per request)",
+            "items": {
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991,
+              "type": "integer"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "chat",
+          "ids"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-stories-by-id"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chat": {
+            "description": "Peer owning the story — usually 'me' or your own user id/@username",
+            "type": "string"
+          },
+          "forwardsFirst": {
+            "description": "Sort forwards/reposts first",
+            "type": "boolean"
+          },
+          "justContacts": {
+            "description": "Return only contacts",
+            "type": "boolean"
+          },
+          "limit": {
+            "description": "Max viewers to return (default 50, max 100)",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "offset": {
+            "description": "Pagination offset from a previous response's nextOffset",
+            "type": "string"
+          },
+          "q": {
+            "description": "Filter viewers by name substring",
+            "type": "string"
+          },
+          "reactionsFirst": {
+            "description": "Sort viewers who reacted first",
+            "type": "boolean"
+          },
+          "storyId": {
+            "description": "Story ID to fetch viewers for",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "chat",
+          "storyId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-story-views"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {},
+        "type": "object"
+      },
+      "name": "telegram-get-suggested-folders"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "limit": {
+            "default": 20,
+            "description": "Max number of reactions to return",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "name": "telegram-get-top-reactions"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "messageId": {
+            "description": "Message ID of the voice or video note",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "chatId",
+          "messageId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-transcription"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "limit": {
+            "default": 20,
+            "description": "Number of unread chats to return",
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "name": "telegram-get-unread"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "limit": {
+            "default": 20,
+            "description": "Max number of mentions to return",
+            "type": "number"
+          }
+        },
+        "required": [
+          "chatId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-unread-mentions"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "limit": {
+            "default": 20,
+            "description": "Max number of messages to return",
+            "type": "number"
+          }
+        },
+        "required": [
+          "chatId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-unread-reactions"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "date": {
+            "description": "Last known date (unix seconds from prior state)",
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          },
+          "pts": {
+            "description": "Last known pts (from telegram-get-state or prior telegram-get-updates)",
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          },
+          "ptsLimit": {
+            "description": "Max updates per batch (default 100, capped at 1000)",
+            "exclusiveMinimum": 0,
+            "maximum": 1000,
+            "type": "integer"
+          },
+          "ptsTotalLimit": {
+            "description": "Max total updates across paginated slices (default 1000, capped at 1000)",
+            "exclusiveMinimum": 0,
+            "maximum": 1000,
+            "type": "integer"
+          },
+          "qts": {
+            "description": "Last known qts (secret-chat / encrypted stream cursor; 0 if unknown)",
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "pts",
+          "qts",
+          "date"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-updates"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "url": {
+            "description": "URL to preview (http:// or https://; literal private/loopback/reserved IPs rejected)",
+            "format": "uri",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-get-web-preview"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "bot": {
+            "description": "Inline bot username (e.g. @gif) or numeric user ID",
+            "type": "string"
+          },
+          "chatId": {
+            "description": "Chat ID or username providing context for the inline query",
+            "type": "string"
+          },
+          "offset": {
+            "description": "Pagination offset returned by a previous call as nextOffset (empty string on first call)",
+            "type": "string"
+          },
+          "query": {
+            "description": "Query text the bot should resolve (may be empty string)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "bot",
+          "chatId",
+          "query"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-inline-query"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Target chat ID or username to send the result into",
+            "type": "string"
+          },
+          "clearDraft": {
+            "description": "Clear the chat draft after sending",
+            "type": "boolean"
+          },
+          "hideVia": {
+            "description": "Hide the 'via @bot' label on the sent message",
+            "type": "boolean"
+          },
+          "queryId": {
+            "description": "queryId from a prior telegram-inline-query call (valid ~60s)",
+            "pattern": "^\\d+$",
+            "type": "string"
+          },
+          "replyTo": {
+            "description": "Message ID to reply to",
+            "type": "number"
+          },
+          "resultId": {
+            "description": "id of the chosen result from telegram-inline-query results[]",
+            "type": "string"
+          },
+          "silent": {
+            "description": "Send without notification",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "chatId",
+          "queryId",
+          "resultId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-inline-query-send"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "users": {
+            "description": "Usernames or IDs to invite",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "chatId",
+          "users"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-invite-to-group"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "target": {
+            "description": "Username (@group), link (t.me/group), or invite link (t.me/+xxx)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "target"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-join-chat"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "userId": {
+            "description": "User ID or username to kick",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId",
+          "userId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-kick-user"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-leave-group"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "filterType": {
+            "description": "Filter by chat type. 'contact_requests' shows only private chats from non-contacts",
+            "enum": [
+              "private",
+              "group",
+              "channel",
+              "contact_requests"
+            ],
+            "type": "string"
+          },
+          "limit": {
+            "default": 20,
+            "description": "Number of chats to return",
+            "type": "number"
+          },
+          "offsetDate": {
+            "description": "Unix timestamp offset for pagination",
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "name": "telegram-list-chats"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "kind": {
+            "default": "default",
+            "description": "Which list: default (popular set), recent (your recent usage), channel_default (for channels), collectible (paid unique)",
+            "enum": [
+              "default",
+              "recent",
+              "channel_default",
+              "collectible"
+            ],
+            "type": "string"
+          },
+          "limit": {
+            "default": 50,
+            "description": "Max items to return",
+            "exclusiveMinimum": 0,
+            "maximum": 200,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "name": "telegram-list-emoji-statuses"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {},
+        "type": "object"
+      },
+      "name": "telegram-list-mini-apps"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username of a group with Topics enabled",
+            "type": "string"
+          },
+          "limit": {
+            "default": 100,
+            "description": "Max topics to return",
+            "type": "number"
+          }
+        },
+        "required": [
+          "chatId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-list-topics"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "properties": {},
+        "type": "object"
+      },
+      "name": "telegram-login"
+    },
+    {
+      "annotations": {
+        "destructiveHint": true,
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "properties": {},
+        "type": "object"
+      },
+      "name": "telegram-logout"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-mark-as-read"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "unread": {
+            "description": "true to mark as unread, false to clear the mark",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "chatId",
+          "unread"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-mark-dialog-unread"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "ref": {
+            "description": "Element ref from telegram-miniapp-read, e.g. ref_3",
+            "type": "string"
+          },
+          "text": {
+            "description": "Visible text to click, when no ref is known",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "name": "telegram-miniapp-click"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {},
+        "type": "object"
+      },
+      "name": "telegram-miniapp-close"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "ref": {
+            "description": "Element ref from telegram-miniapp-read",
+            "type": "string"
+          },
+          "value": {
+            "description": "Text to type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ref",
+          "value"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-miniapp-fill"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {},
+        "type": "object"
+      },
+      "name": "telegram-miniapp-read"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {},
+        "type": "object"
+      },
+      "name": "telegram-miniapp-screenshot"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "duration": {
+            "description": "Mute duration in seconds (only when muted=true, must be > 0). Omit to mute forever",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          },
+          "muted": {
+            "description": "true to mute, false to unmute",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "chatId",
+          "muted"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-mute-chat"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "appName": {
+            "description": "Named app short name (t.me/<bot>/<appName>); omit for the bot's main mini app",
+            "type": "string"
+          },
+          "bot": {
+            "description": "Bot username or ID, e.g. DurgerKingBot",
+            "type": "string"
+          },
+          "peer": {
+            "description": "Chat the app is opened from; defaults to the bot chat",
+            "type": "string"
+          },
+          "platform": {
+            "default": "web",
+            "description": "Platform reported to the app: web, android, ios, tdesktop",
+            "enum": [
+              "web",
+              "android",
+              "ios",
+              "tdesktop"
+            ],
+            "type": "string"
+          },
+          "render": {
+            "default": false,
+            "description": "Also open the app in the built-in browser and return its content",
+            "type": "boolean"
+          },
+          "startParam": {
+            "description": "start_param passed to the mini app",
+            "type": "string"
+          },
+          "writeAllowed": {
+            "default": false,
+            "description": "Grant the app permission to message you. Ask the human before enabling.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "bot"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-open-mini-app"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "pin": {
+            "description": "true to pin, false to unpin",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "chatId",
+          "pin"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-pin-chat"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "messageId": {
+            "description": "Message ID to pin",
+            "type": "number"
+          },
+          "silent": {
+            "default": false,
+            "description": "Pin without notification",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "chatId",
+          "messageId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-pin-message"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username of the forum supergroup",
+            "type": "string"
+          },
+          "pinned": {
+            "default": true,
+            "description": "true — pin the topic, false — unpin it",
+            "type": "boolean"
+          },
+          "topicId": {
+            "description": "Topic ID (get from telegram-list-topics)",
+            "type": "number"
+          }
+        },
+        "required": [
+          "chatId",
+          "topicId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-pin-topic"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username where the message lives",
+            "type": "string"
+          },
+          "column": {
+            "description": "Button column index (0-based) — required unless data is provided",
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "data": {
+            "description": "Raw callback_data as base64 string (escape hatch — prefer row/column)",
+            "type": "string"
+          },
+          "messageId": {
+            "description": "Message ID whose inline button to press",
+            "type": "number"
+          },
+          "row": {
+            "description": "Button row index (0-based) — required unless data is provided",
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "chatId",
+          "messageId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-press-button"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "bot": {
+            "description": "Bot username or ID",
+            "type": "string"
+          },
+          "peer": {
+            "description": "Chat the app was opened from; defaults to the bot chat",
+            "type": "string"
+          },
+          "queryId": {
+            "description": "queryId from telegram-open-mini-app",
+            "type": "string"
+          }
+        },
+        "required": [
+          "bot",
+          "queryId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-prolong-mini-app"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "good": {
+            "description": "true = good quality, false = poor quality",
+            "type": "boolean"
+          },
+          "messageId": {
+            "description": "Message ID of the voice or video note",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          },
+          "transcriptionId": {
+            "description": "Transcription ID returned by telegram-transcribe-audio",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId",
+          "messageId",
+          "transcriptionId",
+          "good"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-rate-transcription"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "addToRecent": {
+            "description": "Add emoji to your recently used reactions",
+            "type": "boolean"
+          },
+          "chatId": {
+            "description": "Peer who posted the story",
+            "type": "string"
+          },
+          "emoji": {
+            "description": "Reaction emoji. Empty string '' removes the reaction.",
+            "maxLength": 8,
+            "type": "string"
+          },
+          "storyId": {
+            "description": "Story ID to react to",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "chatId",
+          "storyId",
+          "emoji"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-react-to-story"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "limit": {
+            "default": 10,
+            "description": "Number of messages to return",
+            "type": "number"
+          },
+          "maxDate": {
+            "description": "Unix timestamp: only messages before this date",
+            "type": "number"
+          },
+          "minDate": {
+            "description": "Unix timestamp: only messages after this date",
+            "type": "number"
+          },
+          "offsetId": {
+            "description": "Message ID to start from (for pagination)",
+            "type": "number"
+          },
+          "raw": {
+            "description": "Telegram MCP Starter: return full message objects as JSON instead of formatted text",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "chatId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-read-messages"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Peer whose stories to mark as seen",
+            "type": "string"
+          },
+          "maxId": {
+            "description": "Stories up to and including this ID will be marked seen",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "chatId",
+          "maxId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-read-stories"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "limit": {
+            "default": 20,
+            "description": "Number of messages to return",
+            "type": "number"
+          },
+          "offsetId": {
+            "description": "Message ID to start from (for pagination)",
+            "type": "number"
+          },
+          "topicId": {
+            "description": "Topic ID (get from telegram-list-topics)",
+            "type": "number"
+          }
+        },
+        "required": [
+          "chatId",
+          "topicId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-read-topic-messages"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "userId": {
+            "description": "User ID or username to demote",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId",
+          "userId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-remove-admin"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "order": {
+            "description": "Ordered list of folder IDs (≥ 2). Obtain IDs from telegram-get-chat-folders",
+            "items": {
+              "maximum": 9007199254740991,
+              "minimum": 2,
+              "type": "integer"
+            },
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "order"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-reorder-folders"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username of the forum supergroup",
+            "type": "string"
+          },
+          "force": {
+            "default": false,
+            "description": "true — unpin every pinned topic that is not in `order`",
+            "type": "boolean"
+          },
+          "order": {
+            "description": "Topic IDs in the desired order, topmost first",
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "chatId",
+          "order"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-reorder-pinned-topics"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username to report",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-report-spam"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Peer who posted the story",
+            "type": "string"
+          },
+          "ids": {
+            "description": "Story IDs to report",
+            "items": {
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991,
+              "type": "integer"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "type": "array"
+          },
+          "message": {
+            "description": "Optional message to accompany the report",
+            "type": "string"
+          },
+          "option": {
+            "default": "",
+            "description": "Base64-encoded option bytes from a prior report step, or empty string to start the flow",
+            "maxLength": 128,
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId",
+          "ids"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-report-story"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "slug": {
+            "description": "Link slug to resolve (from t.me/m/<slug>)",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-resolve-business-chat-link"
+    },
+    {
+      "annotations": {
+        "destructiveHint": true,
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "link": {
+            "description": "The invite link to revoke",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId",
+          "link"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-revoke-invite-link"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "replyTo": {
+            "description": "Message ID this draft replies to",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          },
+          "text": {
+            "description": "Draft text. Empty string clears the draft",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId",
+          "text"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-save-draft"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat/channel ID where the gift was received (required with savedId for chat gifts)",
+            "type": "string"
+          },
+          "msgId": {
+            "description": "Message ID of the gift (from your DMs) — use this for personal gifts",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          },
+          "savedId": {
+            "description": "Saved gift ID (from get-saved-star-gifts) — required with chatId for chat gifts",
+            "pattern": "^\\d+$",
+            "type": "string"
+          },
+          "unsave": {
+            "description": "true = hide the gift from profile; false/omit = show it",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "name": "telegram-save-star-gift"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "limit": {
+            "default": 10,
+            "description": "Max results",
+            "type": "number"
+          },
+          "query": {
+            "description": "Search query (name or username)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-search-chats"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "limit": {
+            "default": 20,
+            "description": "Max results",
+            "type": "number"
+          },
+          "maxDate": {
+            "description": "Unix timestamp: only messages before this date",
+            "type": "number"
+          },
+          "minDate": {
+            "description": "Unix timestamp: only messages after this date",
+            "type": "number"
+          },
+          "query": {
+            "description": "Search text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-search-global"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "limit": {
+            "default": 20,
+            "description": "Max results",
+            "type": "number"
+          },
+          "maxDate": {
+            "description": "Unix timestamp: only messages before this date",
+            "type": "number"
+          },
+          "minDate": {
+            "description": "Unix timestamp: only messages after this date",
+            "type": "number"
+          },
+          "query": {
+            "description": "Search text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId",
+          "query"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-search-messages"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "query": {
+            "description": "Search query (e.g. 'cat', 'love', 'pepe', 'anime')",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-search-sticker-sets"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "caption": {
+            "description": "Album-level caption (attached to the first item — shown in the collapsed view)",
+            "type": "string"
+          },
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "items": {
+            "description": "Array of media items (2-10)",
+            "items": {
+              "properties": {
+                "caption": {
+                  "description": "Per-item caption (shown under this item when the album is expanded)",
+                  "type": "string"
+                },
+                "filePath": {
+                  "description": "Absolute local filesystem path to a photo or video file. URLs are rejected.",
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "filePath"
+              ],
+              "type": "object"
+            },
+            "maxItems": 10,
+            "minItems": 2,
+            "type": "array"
+          },
+          "parseMode": {
+            "description": "Caption format (applies to all captions)",
+            "enum": [
+              "md",
+              "html"
+            ],
+            "type": "string"
+          },
+          "replyTo": {
+            "description": "Message ID to reply to",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          },
+          "topicId": {
+            "description": "Forum topic ID",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "chatId",
+          "items"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-send-album"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "firstName": {
+            "description": "Contact first name",
+            "type": "string"
+          },
+          "lastName": {
+            "description": "Contact last name",
+            "type": "string"
+          },
+          "phone": {
+            "description": "Phone number in E.164-like format — 6-15 digits, optional leading +. Note: sent as-is; Telegram shows the number to the recipient.",
+            "pattern": "^\\+?\\d{6,15}$",
+            "type": "string"
+          },
+          "replyTo": {
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          },
+          "topicId": {
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          },
+          "vcard": {
+            "description": "Optional vCard v3.0 text content",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId",
+          "phone",
+          "firstName"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-send-contact"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "emoji": {
+            "default": "🎲",
+            "description": "Dice emoji: 🎲 dice (1-6), 🎯 dart (1-6), 🎰 slot machine (1-64), 🏀 basketball (1-5), ⚽ football (1-5), 🎳 bowling (1-6)",
+            "enum": [
+              "🎲",
+              "🎯",
+              "🎰",
+              "🏀",
+              "⚽",
+              "🎳"
+            ],
+            "type": "string"
+          },
+          "replyTo": {
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          },
+          "topicId": {
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "chatId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-send-dice"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "asDocument": {
+            "description": "Send as document (no Telegram re-encode)",
+            "type": "boolean"
+          },
+          "caption": {
+            "description": "File caption",
+            "type": "string"
+          },
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "filePath": {
+            "description": "Absolute path to file",
+            "type": "string"
+          },
+          "replyTo": {
+            "description": "Message ID to reply to (in forums puts the file into that topic)",
+            "type": "number"
+          },
+          "topicId": {
+            "description": "Forum topic ID to send the file into",
+            "type": "number"
+          }
+        },
+        "required": [
+          "chatId",
+          "filePath"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-send-file"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "accuracyRadius": {
+            "description": "Horizontal accuracy radius in meters (0 = unknown)",
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "heading": {
+            "description": "Direction the user is heading, 1-360 degrees (meaningful only for live locations)",
+            "maximum": 360,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "latitude": {
+            "description": "Latitude in decimal degrees (-90 to 90)",
+            "maximum": 90,
+            "minimum": -90,
+            "type": "number"
+          },
+          "livePeriod": {
+            "description": "If set, sends a live location updated for N seconds (60-86400). Omit for static pin.",
+            "maximum": 86400,
+            "minimum": 60,
+            "type": "integer"
+          },
+          "longitude": {
+            "description": "Longitude in decimal degrees (-180 to 180)",
+            "maximum": 180,
+            "minimum": -180,
+            "type": "number"
+          },
+          "proximityRadius": {
+            "description": "Alert radius for proximity notification in meters (live only)",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          },
+          "replyTo": {
+            "description": "Message ID to reply to",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          },
+          "topicId": {
+            "description": "Forum topic ID",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "chatId",
+          "latitude",
+          "longitude"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-send-location"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username (e.g. @username or numeric ID)",
+            "type": "string"
+          },
+          "effect": {
+            "description": "Optional message effect ID (numeric string, up to 19 digits). Premium animated effect attached to the message.",
+            "pattern": "^\\d{1,19}$",
+            "type": "string"
+          },
+          "parseMode": {
+            "description": "Classic MTProto entities: md or html. This is not Bot API sendRichMessage; h1/p/ul/li/tg-button-row won't become Rich blocks.",
+            "enum": [
+              "md",
+              "html"
+            ],
+            "type": "string"
+          },
+          "quoteText": {
+            "description": "Optional excerpt from the replied-to message to show as a quote above your reply. Requires `replyTo` to be set. Must be a verbatim substring of the original message text.",
+            "type": "string"
+          },
+          "replyTo": {
+            "description": "Message ID to reply to",
+            "type": "number"
+          },
+          "rich": {
+            "description": "Telegram MCP Starter (R6): send a Telegram Rich Message instead of classic text — Telegram's server parses `text` as Markdown (md) or HTML (html) into blocks: headings, lists, tables, quotes. Plain text only; cannot be combined with parseMode, quoteText or effect.",
+            "enum": [
+              "md",
+              "html"
+            ],
+            "type": "string"
+          },
+          "text": {
+            "description": "Message text",
+            "type": "string"
+          },
+          "topicId": {
+            "description": "Forum topic ID to send message into (for groups with Topics enabled)",
+            "type": "number"
+          }
+        },
+        "required": [
+          "chatId",
+          "text"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-send-message"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username (channel)",
+            "type": "string"
+          },
+          "count": {
+            "default": 1,
+            "description": "Number of Stars to send (1-2500)",
+            "maximum": 2500,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "messageId": {
+            "description": "Message ID of the channel post",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          },
+          "private": {
+            "description": "true = anonymous on leaderboard, false = show name, omit = use account default",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "chatId",
+          "messageId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-send-paid-reaction"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "addToExisting": {
+            "default": false,
+            "description": "If true, add reaction(s) to existing ones instead of replacing",
+            "type": "boolean"
+          },
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "emoji": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            ],
+            "description": "Reaction emoji(s): single '👍' or array ['👍','🔥']. Omit to remove all reactions"
+          },
+          "messageId": {
+            "description": "Message ID to react to",
+            "type": "number"
+          }
+        },
+        "required": [
+          "chatId",
+          "messageId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-send-reaction"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username (use 'me' or 'self' for Saved Messages)",
+            "type": "string"
+          },
+          "parseMode": {
+            "description": "Message format: md (Markdown) or html",
+            "enum": [
+              "md",
+              "html"
+            ],
+            "type": "string"
+          },
+          "replyTo": {
+            "description": "Message ID to reply to",
+            "type": "number"
+          },
+          "scheduleDate": {
+            "description": "Unix timestamp when to send the message (must be in the future)",
+            "type": "number"
+          },
+          "text": {
+            "description": "Message text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId",
+          "text",
+          "scheduleDate"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-send-scheduled"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "index": {
+            "description": "Index of the sticker in the set (0-based, get from telegram-get-sticker-set)",
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "replyTo": {
+            "description": "Message ID to reply to",
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          },
+          "stickerSet": {
+            "description": "Short name of the sticker set (e.g. 'HotCherry')",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId",
+          "stickerSet",
+          "index"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-send-sticker"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "allowUserIds": {
+            "description": "Required when privacy='selected': numeric user IDs allowed to see the story",
+            "items": {
+              "pattern": "^\\d{1,19}$",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "caption": {
+            "description": "Story caption (max 2048 chars)",
+            "type": "string"
+          },
+          "chatId": {
+            "default": "me",
+            "description": "Peer to post the story to — 'me', @username, or numeric ID",
+            "type": "string"
+          },
+          "disallowUserIds": {
+            "description": "User IDs explicitly blocked from seeing the story (ignored for privacy='selected')",
+            "items": {
+              "pattern": "^\\d{1,19}$",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "filePath": {
+            "description": "Absolute path to the photo or video file to upload",
+            "type": "string"
+          },
+          "noforwards": {
+            "description": "Prevent others from forwarding or saving the story",
+            "type": "boolean"
+          },
+          "parseMode": {
+            "description": "Caption parse mode: md or html",
+            "enum": [
+              "md",
+              "html"
+            ],
+            "type": "string"
+          },
+          "period": {
+            "anyOf": [
+              {
+                "const": 21600,
+                "type": "number"
+              },
+              {
+                "const": 43200,
+                "type": "number"
+              },
+              {
+                "const": 86400,
+                "type": "number"
+              },
+              {
+                "const": 172800,
+                "type": "number"
+              }
+            ],
+            "description": "Story lifetime in seconds: 21600=6h, 43200=12h, 86400=24h (default), 172800=48h"
+          },
+          "pinned": {
+            "description": "Keep the story in the profile highlights after expiry",
+            "type": "boolean"
+          },
+          "privacy": {
+            "default": "everyone",
+            "description": "Who can see the story",
+            "enum": [
+              "everyone",
+              "contacts",
+              "close_friends",
+              "selected"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "description": "Override auto-detected media type",
+            "enum": [
+              "photo",
+              "video"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "filePath"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-send-story"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "action": {
+            "default": "typing",
+            "description": "Typing action to broadcast",
+            "enum": [
+              "typing",
+              "upload_photo",
+              "upload_document",
+              "cancel"
+            ],
+            "type": "string"
+          },
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-send-typing"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "address": {
+            "description": "Street address",
+            "type": "string"
+          },
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "latitude": {
+            "description": "Venue latitude",
+            "maximum": 90,
+            "minimum": -90,
+            "type": "number"
+          },
+          "longitude": {
+            "description": "Venue longitude",
+            "maximum": 180,
+            "minimum": -180,
+            "type": "number"
+          },
+          "provider": {
+            "description": "Data provider — typically 'foursquare' or 'gplaces'. Defaults to 'foursquare'.",
+            "type": "string"
+          },
+          "replyTo": {
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          },
+          "title": {
+            "description": "Venue name (e.g. 'Red Square')",
+            "type": "string"
+          },
+          "topicId": {
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          },
+          "venueId": {
+            "description": "Provider-specific venue ID",
+            "type": "string"
+          },
+          "venueType": {
+            "description": "Provider-specific venue type category",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId",
+          "latitude",
+          "longitude",
+          "title",
+          "address"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-send-venue"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "duration": {
+            "description": "Duration in seconds (Telegram caps at 60)",
+            "exclusiveMinimum": 0,
+            "maximum": 60,
+            "type": "integer"
+          },
+          "filePath": {
+            "description": "Absolute local filesystem path to video file (MP4 preferred, square source recommended for best look). URLs are rejected.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "length": {
+            "description": "Frame edge length in pixels (the circle is square-cropped)",
+            "exclusiveMinimum": 0,
+            "maximum": 640,
+            "type": "integer"
+          },
+          "replyTo": {
+            "description": "Message ID to reply to",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          },
+          "topicId": {
+            "description": "Forum topic ID",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "chatId",
+          "filePath"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-send-video-note"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "caption": {
+            "description": "Optional caption shown below the voice note",
+            "type": "string"
+          },
+          "chatId": {
+            "description": "Chat ID or username (e.g. @username or numeric ID)",
+            "type": "string"
+          },
+          "filePath": {
+            "description": "Absolute local filesystem path to audio file (OGG/Opus preferred; M4A/MP3 also accepted). URLs are rejected.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "parseMode": {
+            "description": "Caption format: md (Markdown) or html",
+            "enum": [
+              "md",
+              "html"
+            ],
+            "type": "string"
+          },
+          "replyTo": {
+            "description": "Message ID to reply to",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          },
+          "topicId": {
+            "description": "Forum topic ID (for groups with Topics enabled)",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "chatId",
+          "filePath"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-send-voice"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "title": {
+            "description": "Custom admin title",
+            "type": "string"
+          },
+          "userId": {
+            "description": "User ID or username to promote",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId",
+          "userId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-set-admin"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "period": {
+            "description": "Auto-delete period in seconds. 0 = disable. Common: 86400 (1d), 604800 (1w), 2592000 (1mo)",
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "chatId",
+          "period"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-set-auto-delete"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "clear": {
+            "description": "Pass true to remove birthday from profile",
+            "type": "boolean"
+          },
+          "day": {
+            "description": "Day of month (1-31)",
+            "maximum": 31,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "month": {
+            "description": "Month (1-12)",
+            "maximum": 12,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "year": {
+            "description": "Year (optional — omit to hide age)",
+            "maximum": 2100,
+            "minimum": 1900,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "name": "telegram-set-birthday"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "audience": {
+            "default": "all_new",
+            "description": "Who receives the away message",
+            "enum": [
+              "all_new",
+              "contacts_only",
+              "non_contacts",
+              "existing_only"
+            ],
+            "type": "string"
+          },
+          "clear": {
+            "description": "Pass true to disable away message",
+            "type": "boolean"
+          },
+          "customFrom": {
+            "description": "For schedule=custom: Unix timestamp range start",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          },
+          "customTo": {
+            "description": "For schedule=custom: Unix timestamp range end",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          },
+          "excludeUsers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "includeUsers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "offlineOnly": {
+            "default": true,
+            "description": "Send only when you appear offline (true) or regardless of online status (false)",
+            "type": "boolean"
+          },
+          "schedule": {
+            "default": "outside_hours",
+            "description": "When to send: always (any time offline), outside_hours (based on business hours), custom (time range)",
+            "enum": [
+              "always",
+              "outside_hours",
+              "custom"
+            ],
+            "type": "string"
+          },
+          "shortcutId": {
+            "description": "Quick reply shortcut ID used as the away message template",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "name": "telegram-set-business-away"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "audience": {
+            "default": "all_new",
+            "description": "Who receives the greeting: all_new (new contacts+non-contacts), contacts_only, non_contacts, existing_only",
+            "enum": [
+              "all_new",
+              "contacts_only",
+              "non_contacts",
+              "existing_only"
+            ],
+            "type": "string"
+          },
+          "clear": {
+            "description": "Pass true to disable greeting message",
+            "type": "boolean"
+          },
+          "excludeUsers": {
+            "description": "Usernames/IDs to exclude — overrides audience. Cannot be combined with includeUsers.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "includeUsers": {
+            "description": "Additional usernames/IDs to always include",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "noActivityDays": {
+            "default": 7,
+            "description": "Send greeting if user has been inactive for N days",
+            "maximum": 365,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "shortcutId": {
+            "description": "Quick reply shortcut ID (from telegram-get-quick-replies) used as the greeting template",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "name": "telegram-set-business-greeting"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "clear": {
+            "description": "Pass true to remove business hours entirely",
+            "type": "boolean"
+          },
+          "openNow": {
+            "description": "Manually override current open/closed status. Omit to derive from schedule.",
+            "type": "boolean"
+          },
+          "schedule": {
+            "description": "Weekly schedule. Multiple ranges per day are allowed.",
+            "items": {
+              "properties": {
+                "day": {
+                  "description": "Day of week",
+                  "enum": [
+                    "mon",
+                    "tue",
+                    "wed",
+                    "thu",
+                    "fri",
+                    "sat",
+                    "sun"
+                  ],
+                  "type": "string"
+                },
+                "openFrom": {
+                  "description": "Opening time in 24h HH:MM format",
+                  "pattern": "^\\d{2}:\\d{2}$",
+                  "type": "string"
+                },
+                "openTo": {
+                  "description": "Closing time in 24h HH:MM. Use '24:00' for end of day.",
+                  "pattern": "^\\d{2}:\\d{2}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "day",
+                "openFrom",
+                "openTo"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "timezone": {
+            "description": "IANA timezone ID (e.g. 'Europe/Moscow', 'America/New_York'). Required when setting schedule.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "name": "telegram-set-business-hours"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "clear": {
+            "description": "Pass true to remove the intro card",
+            "type": "boolean"
+          },
+          "description": {
+            "description": "Intro description (max 70 chars)",
+            "maxLength": 70,
+            "minLength": 1,
+            "type": "string"
+          },
+          "stickerAccessHash": {
+            "description": "Access hash of the sticker document (required with stickerId)",
+            "type": "string"
+          },
+          "stickerFileReference": {
+            "description": "Hex-encoded file_reference bytes (required with stickerId)",
+            "pattern": "^[\\da-fA-F]{2,}$",
+            "type": "string"
+          },
+          "stickerId": {
+            "description": "Sticker document ID (stringified long) — optional illustrative sticker. Requires stickerAccessHash and stickerFileReference.",
+            "type": "string"
+          },
+          "title": {
+            "description": "Intro title (max 32 chars)",
+            "maxLength": 32,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "name": "telegram-set-business-intro"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "address": {
+            "description": "Street address text",
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "clear": {
+            "description": "Pass true to remove business location",
+            "type": "boolean"
+          },
+          "latitude": {
+            "description": "Geo latitude (-90 to 90)",
+            "maximum": 90,
+            "minimum": -90,
+            "type": "number"
+          },
+          "longitude": {
+            "description": "Geo longitude (-180 to 180)",
+            "maximum": 180,
+            "minimum": -180,
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "name": "telegram-set-business-location"
+    },
+    {
+      "annotations": {
+        "destructiveHint": true,
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "changeInfo": {
+            "description": "Allow changing chat info (title, photo, description)",
+            "type": "boolean"
+          },
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "embedLinks": {
+            "description": "Allow link previews",
+            "type": "boolean"
+          },
+          "inviteUsers": {
+            "description": "Allow inviting new members",
+            "type": "boolean"
+          },
+          "pinMessages": {
+            "description": "Allow pinning messages",
+            "type": "boolean"
+          },
+          "sendGifs": {
+            "description": "Allow sending GIFs",
+            "type": "boolean"
+          },
+          "sendInline": {
+            "description": "Allow inline bot usage",
+            "type": "boolean"
+          },
+          "sendMedia": {
+            "description": "Allow sending photos/videos/documents",
+            "type": "boolean"
+          },
+          "sendMessages": {
+            "description": "Allow sending text messages",
+            "type": "boolean"
+          },
+          "sendPolls": {
+            "description": "Allow sending polls",
+            "type": "boolean"
+          },
+          "sendStickers": {
+            "description": "Allow sending stickers",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "chatId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-set-chat-permissions"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username (group, supergroup, or channel)",
+            "type": "string"
+          },
+          "reactions": {
+            "description": "Reaction policy for the chat",
+            "oneOf": [
+              {
+                "properties": {
+                  "allowCustom": {
+                    "description": "If true, also allow custom emoji reactions (requires Premium users)",
+                    "type": "boolean"
+                  },
+                  "type": {
+                    "const": "all",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "type": "object"
+              },
+              {
+                "properties": {
+                  "emoji": {
+                    "description": "List of allowed reaction emoji (e.g. ['👍','❤️','🔥'])",
+                    "items": {
+                      "maxLength": 8,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "maxItems": 100,
+                    "minItems": 1,
+                    "type": "array"
+                  },
+                  "type": {
+                    "const": "some",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type",
+                  "emoji"
+                ],
+                "type": "object"
+              },
+              {
+                "properties": {
+                  "type": {
+                    "const": "none",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "type": "object"
+              }
+            ]
+          }
+        },
+        "required": [
+          "chatId",
+          "reactions"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-set-chat-reactions"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "emoji": {
+            "description": "Emoji character (e.g. 👍 ❤️ 🔥)",
+            "maxLength": 8,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "emoji"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-set-default-reaction"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "collectibleId": {
+            "description": "Collectible emoji ID (stringified long) — for paid unique emoji. Exactly one of documentId/collectibleId may be set.",
+            "type": "string"
+          },
+          "documentId": {
+            "description": "Custom emoji document ID (stringified long). Omit to clear the status.",
+            "type": "string"
+          },
+          "untilUnix": {
+            "description": "Unix timestamp when status expires. Omit for permanent.",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "name": "telegram-set-emoji-status"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "archiveAndMuteNewNoncontactPeers": {
+            "description": "Auto-archive and mute messages from unknown users",
+            "type": "boolean"
+          },
+          "hideReadMarks": {
+            "description": "Hide read receipts — others cannot see when you read their messages (Premium)",
+            "type": "boolean"
+          },
+          "keepArchivedFolders": {
+            "description": "Keep archived chats in their folders",
+            "type": "boolean"
+          },
+          "keepArchivedUnmuted": {
+            "description": "Keep archived chats unmuted when archiving",
+            "type": "boolean"
+          },
+          "newNoncontactPeersRequirePremium": {
+            "description": "Only allow users with Telegram Premium to message you if they are not in your contacts (Premium)",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "name": "telegram-set-global-privacy-settings"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "channelId": {
+            "description": "Channel ID or @username to feature on profile",
+            "type": "string"
+          },
+          "clear": {
+            "description": "Pass true to remove personal channel from profile",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "name": "telegram-set-personal-channel"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "allowUsers": {
+            "description": "User IDs/usernames to always allow (exceptions)",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "disallowUsers": {
+            "description": "User IDs/usernames to always disallow (exceptions)",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "rule": {
+            "description": "Who can see/access this",
+            "enum": [
+              "everyone",
+              "contacts",
+              "nobody"
+            ],
+            "type": "string"
+          },
+          "setting": {
+            "description": "Privacy setting to change",
+            "enum": [
+              "phone_number",
+              "last_seen",
+              "profile_photo",
+              "forwards",
+              "calls",
+              "groups",
+              "bio"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "setting",
+          "rule"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-set-privacy"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "backgroundEmojiId": {
+            "description": "Custom emoji document ID (stringified long) for profile background pattern (Premium). Omit to remove.",
+            "type": "string"
+          },
+          "color": {
+            "description": "Color index (0-6 free palette; 7+ Premium custom). Omit to reset to default.",
+            "maximum": 20,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "forProfile": {
+            "default": false,
+            "description": "true = profile page color + background pattern (Premium); false = name color in chat lists",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "name": "telegram-set-profile-color"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "fallback": {
+            "default": false,
+            "description": "true = set as fallback photo (shown to users who cannot see your main photo due to privacy settings)",
+            "type": "boolean"
+          },
+          "filePath": {
+            "description": "Absolute local filesystem path to photo (JPEG/PNG) or video (MP4, square) to upload as avatar. URLs are rejected.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "isVideo": {
+            "default": false,
+            "description": "true if file is an MP4 animated avatar; false for static photo",
+            "type": "boolean"
+          },
+          "videoStartTs": {
+            "description": "For video avatar: timestamp in seconds to use as still preview frame",
+            "minimum": 0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "filePath"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-set-profile-photo"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username (supergroup)",
+            "type": "string"
+          },
+          "seconds": {
+            "anyOf": [
+              {
+                "const": 0,
+                "type": "number"
+              },
+              {
+                "const": 10,
+                "type": "number"
+              },
+              {
+                "const": 30,
+                "type": "number"
+              },
+              {
+                "const": 60,
+                "type": "number"
+              },
+              {
+                "const": 300,
+                "type": "number"
+              },
+              {
+                "const": 900,
+                "type": "number"
+              },
+              {
+                "const": 3600,
+                "type": "number"
+              }
+            ],
+            "description": "Interval in seconds: 0 (off), 10, 30, 60, 300, 900, or 3600"
+          }
+        },
+        "required": [
+          "chatId",
+          "seconds"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-set-slow-mode"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "properties": {},
+        "type": "object"
+      },
+      "name": "telegram-status"
+    },
+    {
+      "annotations": {
+        "destructiveHint": true,
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "sessionId": {
+            "description": "Session hash to terminate (numeric string from get-sessions). Required when terminateAllOther is not set",
+            "type": "string"
+          },
+          "terminateAllOther": {
+            "description": "Set to true to terminate all other sessions (excludes current). Cannot be combined with sessionId",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "name": "telegram-terminate-session"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Supergroup ID or username",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "true to enable aggressive anti-spam, false to disable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "chatId",
+          "enabled"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-toggle-anti-spam"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Channel ID or username",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "true to enable author signatures, false to disable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "chatId",
+          "enabled"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-toggle-channel-signatures"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "enabled": {
+            "description": "true to enable folder tags, false to disable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-toggle-folder-tags"
+    },
+    {
+      "annotations": {
+        "destructiveHint": true,
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Supergroup ID or username",
+            "type": "string"
+          },
+          "confirm": {
+            "description": "Must be true when disabling (enabled=false) — disabling deletes all existing topics",
+            "type": "boolean"
+          },
+          "enabled": {
+            "description": "true to enable forum mode, false to disable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "chatId",
+          "enabled"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-toggle-forum-mode"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username (channel)",
+            "type": "string"
+          },
+          "messageId": {
+            "description": "Message ID of the channel post",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          },
+          "private": {
+            "description": "true = anonymous on leaderboard, false = show name",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "chatId",
+          "messageId",
+          "private"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-toggle-paid-reaction-privacy"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Supergroup ID or username",
+            "type": "string"
+          },
+          "hidden": {
+            "description": "true to hide prior history from new members, false to make it visible",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "chatId",
+          "hidden"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-toggle-prehistory-hidden"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "default": "me",
+            "description": "Peer owning the stories",
+            "type": "string"
+          },
+          "ids": {
+            "description": "Story IDs to pin or unpin",
+            "items": {
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991,
+              "type": "integer"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "type": "array"
+          },
+          "pinned": {
+            "description": "true to pin, false to unpin",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ids",
+          "pinned"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-toggle-story-pinned"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "default": "me",
+            "description": "Peer owning the stories",
+            "type": "string"
+          },
+          "ids": {
+            "description": "Story IDs to pin to the top row; pass [] to clear",
+            "items": {
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991,
+              "type": "integer"
+            },
+            "maxItems": 100,
+            "type": "array"
+          }
+        },
+        "required": [
+          "ids"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-toggle-story-pinned-to-top"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "messageId": {
+            "description": "Message ID of the voice or video note",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "chatId",
+          "messageId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-transcribe-audio"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "messageIds": {
+            "description": "Array of message IDs to translate (1-100)",
+            "items": {
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991,
+              "type": "integer"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "type": "array"
+          },
+          "toLang": {
+            "description": "ISO 639-1 (e.g. 'en', 'ru') or locale (e.g. 'en-US')",
+            "pattern": "^[a-z]{2,3}(-[A-Z]{2})?$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId",
+          "messageIds",
+          "toLang"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-translate-message"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "userId": {
+            "description": "User ID or username to unban",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId",
+          "userId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-unban-user"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "userId": {
+            "description": "User ID or username to unblock",
+            "type": "string"
+          }
+        },
+        "required": [
+          "userId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-unblock-user"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "messageId": {
+            "description": "Message ID to unpin",
+            "type": "number"
+          }
+        },
+        "required": [
+          "chatId",
+          "messageId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-unpin-message"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "bio": {
+            "description": "New bio/about text (max 70 chars, 300 for Premium)",
+            "type": "string"
+          },
+          "firstName": {
+            "description": "New first name",
+            "type": "string"
+          },
+          "lastName": {
+            "description": "New last name",
+            "type": "string"
+          },
+          "username": {
+            "description": "New username (without @)",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "name": "telegram-update-profile"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "messageId": {
+            "description": "Message ID of the poll",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          },
+          "optionIndexes": {
+            "description": "Zero-based option indexes. Empty [] retracts vote.",
+            "items": {
+              "maximum": 9,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "maxItems": 10,
+            "minItems": 0,
+            "type": "array"
+          }
+        },
+        "required": [
+          "chatId",
+          "messageId",
+          "optionIndexes"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-vote-poll"
+    }
+  ]
+}

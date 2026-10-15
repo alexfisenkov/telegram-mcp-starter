@@ -77,29 +77,9 @@ TELEGRAM_PROXY_PORT=10808
 TELEGRAM_USE_WSS=true
 ```
 
-## Запуск без Node.js (готовые бинарники)
+## Поддерживаемый запуск
 
-У исходного проекта есть самодостаточные бинарники — один файл, никаких зависимостей:
-
-| Платформа | Сервер | Логин |
-|-----------|--------|-------|
-| macOS Apple Silicon | `mcp-telegram-darwin-arm64` | `mcp-telegram-login-darwin-arm64` |
-| macOS Intel | `mcp-telegram-darwin-x64` | `mcp-telegram-login-darwin-x64` |
-| Windows x64 | `mcp-telegram-windows-x64.exe` | `mcp-telegram-login-windows-x64.exe` |
-| Linux x64 | `mcp-telegram-linux-x64` | `mcp-telegram-login-linux-x64` |
-| Linux ARM64 | `mcp-telegram-linux-arm64` | `mcp-telegram-login-linux-arm64` |
-
-Скачать со [страницы Releases](https://github.com/mcp-telegram/mcp-telegram/releases/latest) и переименовать (пример для macOS Apple Silicon — подставьте свою платформу из таблицы):
-
-```bash
-curl -L -o mcp-telegram       https://github.com/mcp-telegram/mcp-telegram/releases/latest/download/mcp-telegram-darwin-arm64
-curl -L -o mcp-telegram-login https://github.com/mcp-telegram/mcp-telegram/releases/latest/download/mcp-telegram-login-darwin-arm64
-chmod +x mcp-telegram mcp-telegram-login
-TELEGRAM_API_ID=ВАШ_ID TELEGRAM_API_HASH=ВАШ_HASH ./mcp-telegram-login   # QR-вход
-# в конфиге клиента: "command": "/полный/путь/mcp-telegram" + env-переменные
-```
-
-> macOS может заблокировать неподписанный бинарник (Gatekeeper): Системные настройки → Конфиденциальность и безопасность → «Разрешить». Наш основной путь через Node.js этой проблемы не имеет.
+Upstream бинарники и прямые `npm`/`npx` команды не включают расширения Starter и не являются поддерживаемым способом установки. Используйте Node.js 22+ и официальный install script; он закрепляет зависимости и проверяет postimages. Для локального Mini App UI дополнительно может понадобиться `npx playwright install chromium`; установщик сам браузер не скачивает.
 
 ## Другие MCP-клиенты
 
@@ -109,12 +89,6 @@ TELEGRAM_API_ID=ВАШ_ID TELEGRAM_API_HASH=ВАШ_HASH ./mcp-telegram-login   #
 - **VS Code (GitHub Copilot):** команда `MCP: Add Server` или файл `.vscode/mcp.json` — пример в `configs/vscode.example.json`.
 - **Codex CLI:** блок в `~/.codex/config.toml` — пример в `configs/codex.example.toml`.
 
-## Смена закреплённой версии сервера
+## Обновление
 
-Установщик ставит версию, зафиксированную в переменной `PKG_VERSION` в начале скрипта (сейчас `1.41.6`) — чтобы у всех было одинаковое проверенное окружение. Обновиться самостоятельно:
-
-```bash
-npm install --prefix ~/.telegram-mcp/server @overpod/mcp-telegram@latest
-```
-
-Список изменений: [CHANGELOG проекта](https://github.com/mcp-telegram/mcp-telegram/blob/main/CHANGELOG.md).
+Повторно запустите `install.sh` или `install.ps1`. Не обновляйте npm-пакет отдельно от закреплённого дистрибутива.

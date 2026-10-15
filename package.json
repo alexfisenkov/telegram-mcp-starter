@@ -1,0 +1,23 @@
+{
+  "name": "telegram-mcp-starter",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Pinned runtime dependencies for Telegram MCP Starter",
+  "dependencies": {
+    "@overpod/mcp-telegram": "1.43.1",
+    "playwright": "1.62.1"
+  },
+  "overrides": {
+    "telegram": "npm:teleproto@1.229.0"
+  },
+  "scripts": {
+    "runtime:apply": "node tools/apply-patches.mjs --package-dir node_modules/@overpod/mcp-telegram",
+    "runtime:check": "node tools/apply-patches.mjs --package-dir node_modules/@overpod/mcp-telegram --check",
+    "test": "node tools/test-all.mjs",
+    "test:smoke": "node tests/ci-smoke.mjs",
+    "release:pack": "node tools/pack-release.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

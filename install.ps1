@@ -13,15 +13,35 @@
 #  Скрипт идемпотентный: можно запускать повторно, ничего не сломает.
 #  Совместим с Windows PowerShell 5.1 и PowerShell 7+.
 # ============================================================================
+param(
+    [switch]$RuntimeOnly,
+    [string]$InstallRoot,
+    [string]$SourceArchive,
+    [string]$SourceCommit
+)
 
 function Install-TelegramMcp {
 
 $ErrorActionPreference = "Stop"
 
 $PkgName    = "@overpod/mcp-telegram"
-$PkgVersion = "1.41.6"
+$PkgVersion = "1.43.1"
+$SourceVersion = "v2.0.0"
+$SourceRepository = "alexfisenkov/telegram-mcp-starter"
 
-$BaseDir    = Join-Path $env:USERPROFILE ".telegram-mcp"
+$BaseDir    = if ($InstallRoot) { [IO.Path]::GetFullPath($InstallRoot) } elseif ($env:TELEGRAM_MCP_INSTALL_ROOT) { [IO.Path]::GetFullPath($env:TELEGRAM_MCP_INSTALL_ROOT) } else { Join-Path $env:USERPROFILE ".telegram-mcp" }
+if (($InstallRoot -or $env:TELEGRAM_MCP_INSTALL_ROOT) -and -not $RuntimeOnly) { Write-Host "[X] Пользовательский install root разрешён только вместе с -RuntimeOnly." -ForegroundColor Red; return }
+if ($SourceArchive -or $SourceCommit) {
+    if (-not $RuntimeOnly -or -not $InstallRoot -or -not $SourceArchive -or -not $SourceCommit) {
+        Write-Host "[X] -SourceArchive и -SourceCommit разрешены только вместе с -RuntimeOnly, -InstallRoot и друг с другом." -ForegroundColor Red
+        return
+    }
+    if ($SourceCommit -notmatch '^[a-fA-F0-9]{40}$' -or -not (Test-Path -LiteralPath $SourceArchive -PathType Leaf)) {
+        Write-Host "[X] Для тестового источника нужен существующий архив и полный 40-символьный commit SHA." -ForegroundColor Red
+        return
+    }
+    $SourceCommit = $SourceCommit.ToLowerInvariant()
+}
 $ServerDir  = Join-Path $BaseDir "server"
 $EnvFile    = Join-Path $BaseDir "telegram.env"
 $SessionPath= Join-Path $BaseDir "session"
@@ -54,7 +74,7 @@ function Read-Hidden($prompt) {
 
 Write-Host ""
 Write-Host "Telegram MCP Starter — подключаем ваш Telegram к Claude" -ForegroundColor White
-Write-Host "Сервер: $PkgName@$PkgVersion  |  Установка в: $BaseDir"
+Write-Host "Сервер: $PkgName@$PkgVersion  |  исходники $SourceVersion  |  установка в: $BaseDir"
 Write-Host ""
 
 # ---------- шаг 1: Node.js --------------------------------------------------
@@ -65,6 +85,10 @@ $NodeBin = $null
 if ($NodeCmd) {
     $NodeBin = $NodeCmd.Source
 } else {
+    if ($RuntimeOnly) {
+        Write-Err "Режим -RuntimeOnly не устанавливает системные зависимости. Сначала установите Node.js 22+ и запустите команду повторно."
+        throw "Node.js 22+ is required in runtime-only mode."
+    }
     Write-Warn2 "Node.js не найден — попробую установить автоматически."
     $WingetCmd = Get-Command winget -ErrorAction SilentlyContinue
     if ($WingetCmd -and (Ask-YesNo "Установить Node.js LTS автоматически через winget?")) {
@@ -91,8 +115,8 @@ if ($NodeCmd) {
 # кавычки внутри аргументов нативных команд теряются.
 $NodeVersionRaw = (& $NodeBin -v)
 $NodeMajor = [int]($NodeVersionRaw.TrimStart('v').Split('.')[0])
-if ($NodeMajor -lt 18) {
-    Write-Err "Найден Node.js $NodeVersionRaw, а нужен 18 или новее. Обновите с https://nodejs.org"
+if ($NodeMajor -lt 22) {
+    Write-Err "Найден Node.js $NodeVersionRaw, а нужен 22 или новее. Обновите с https://nodejs.org"
     return
 }
 Write-Ok "Node.js $NodeVersionRaw — подходит ($NodeBin)"
@@ -109,33 +133,93 @@ if (-not $NpmBin -or -not (Test-Path $NpmBin)) {
 }
 Write-Ok "npm $(& $NpmBin -v)"
 
-# ---------- шаг 2: установка сервера ----------------------------------------
-Write-Step "Шаг 2/7 · Устанавливаю MCP-сервер $PkgName@$PkgVersion"
+# ---------- шаг 2: установка проверенного публичного runtime ------------------
+Write-Step "Шаг 2/7 · Устанавливаю $PkgName@$PkgVersion и runtime $SourceVersion"
 
-New-Item -ItemType Directory -Force -Path $ServerDir | Out-Null
-$PkgJson = Join-Path $ServerDir "package.json"
-if (-not (Test-Path $PkgJson)) {
-    Set-Content -Path $PkgJson -Value "{`n  `"name`": `"telegram-mcp-local`",`n  `"private`": true`n}" -Encoding Ascii
-}
-
-Push-Location $ServerDir
+New-Item -ItemType Directory -Force -Path $BaseDir | Out-Null
+$StageRoot = Join-Path $BaseDir (".telegram-mcp-stage-" + [Guid]::NewGuid().ToString("N"))
+$StagedServer = Join-Path $StageRoot "server"
+$BackupDir = $null
 try {
-    & $NpmBin install "$PkgName@$PkgVersion" --no-fund --no-audit --loglevel=error
+    New-Item -ItemType Directory -Force -Path $StagedServer | Out-Null
+    $ArchivePath = Join-Path $StageRoot "source.tar.gz"
+    [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+    if (-not $SourceArchive) {
+        $Release = Invoke-RestMethod -Uri "https://api.github.com/repos/$SourceRepository/commits/$SourceVersion" -Headers @{ "User-Agent" = "telegram-mcp-starter-installer" }
+        $SourceCommit = [string]$Release.sha
+        if ($SourceCommit -notmatch '^[a-fA-F0-9]{40}$') { throw "GitHub API не вернул полный commit SHA для $SourceVersion." }
+        $SourceCommit = $SourceCommit.ToLowerInvariant()
+        Invoke-WebRequest -Uri "https://github.com/$SourceRepository/archive/$SourceCommit.tar.gz" -OutFile $ArchivePath -UseBasicParsing
+        $SourceArchive = $ArchivePath
+    }
+    $ExtractDir = Join-Path $StageRoot "extract"
+    New-Item -ItemType Directory -Force -Path $ExtractDir | Out-Null
+    if ([IO.Path]::GetExtension($SourceArchive) -ieq ".zip") {
+        Expand-Archive -LiteralPath $SourceArchive -DestinationPath $ExtractDir -Force
+    } else {
+        $TarCommand = Get-Command tar.exe -ErrorAction SilentlyContinue
+        if (-not $TarCommand) { $TarCommand = Get-Command tar -ErrorAction SilentlyContinue }
+        if (-not $TarCommand) { throw "Не найдена команда tar для распаковки закреплённого source archive." }
+        & $TarCommand.Source -xzf $SourceArchive -C $ExtractDir
+        if ($LASTEXITCODE -ne 0) { throw "Распаковка source archive завершилась с кодом $LASTEXITCODE." }
+    }
+    $ArchiveRoot = Get-ChildItem -LiteralPath $ExtractDir -Directory | Select-Object -First 1
+    if (-not $ArchiveRoot) { throw "Архив $SourceVersion не содержит корневую папку." }
+    Copy-Item -Path (Join-Path $ArchiveRoot.FullName "*") -Destination $StagedServer -Recurse -Force
+    foreach ($RequiredFile in @("package.json", "package-lock.json", "runtime\manifest.json")) {
+        if (-not (Test-Path (Join-Path $StagedServer $RequiredFile) -PathType Leaf)) {
+            throw "Архив $SourceVersion неполный: отсутствует $RequiredFile."
+        }
+    }
+    $SourcePackage = Get-Content (Join-Path $StagedServer "package.json") -Raw | ConvertFrom-Json
+    if ($SourcePackage.version -ne "2.0.0") { throw "Ожидалась версия исходников 2.0.0, получена $($SourcePackage.version)." }
+    if ($SourcePackage.overrides.telegram -ne "npm:teleproto@1.229.0") { throw "Исходники должны закреплять override telegram: npm:teleproto@1.229.0." }
+    $LockCheckScript = 'const p=require(process.argv[1]); process.stdout.write(JSON.stringify({package:p.packages?.["node_modules/@overpod/mcp-telegram"]?.version,teleproto:p.packages?.["node_modules/@overpod/mcp-telegram/node_modules/telegram"]?.version,playwright:p.packages?.["node_modules/playwright"]?.version}));'
+    $LockJson = & $NodeBin -e $LockCheckScript (Join-Path $StagedServer "package-lock.json")
+    if ($LASTEXITCODE -ne 0) { throw "Не удалось прочитать закреплённые версии из package-lock.json." }
+    $LockInfo = $LockJson | ConvertFrom-Json
+    if ($LockInfo.package -ne $PkgVersion) { throw "Lockfile закрепляет $PkgName@$($LockInfo.package), ожидалась $PkgVersion." }
+    if ($LockInfo.teleproto -ne "1.229.0") { throw "Lockfile не закрепляет teleproto@1.229.0 (получено $($LockInfo.teleproto))." }
+    if ($LockInfo.playwright -ne "1.62.1") { throw "Lockfile не закрепляет Playwright@1.62.1 (получено $($LockInfo.playwright))." }
+
+    Push-Location $StagedServer
+    try { & $NpmBin ci --ignore-scripts --no-audit --no-fund --loglevel=error }
+    finally { Pop-Location }
+    if ($LASTEXITCODE -ne 0) { throw "npm ci завершился с кодом $LASTEXITCODE." }
+    & $NodeBin (Join-Path $StagedServer "tools\apply-patches.mjs") --package-dir (Join-Path $StagedServer "node_modules\@overpod\mcp-telegram")
+    if ($LASTEXITCODE -ne 0) { throw "Применение runtime patches завершилось с кодом $LASTEXITCODE." }
+    & $NodeBin (Join-Path $StagedServer "tools\apply-patches.mjs") --package-dir (Join-Path $StagedServer "node_modules\@overpod\mcp-telegram") --check
+    if ($LASTEXITCODE -ne 0) { throw "Проверка runtime manifest завершилась с кодом $LASTEXITCODE." }
+    if (-not (Test-Path (Join-Path $StagedServer "node_modules\@overpod\mcp-telegram\dist\cli.js") -PathType Leaf)) { throw "Runtime CLI не найден после проверки." }
+    Set-Content -LiteralPath (Join-Path $StagedServer "doctor.mjs") -Value 'import "./tools/doctor.mjs";' -Encoding Ascii
+    Set-Content -LiteralPath (Join-Path $StagedServer "merge-config.mjs") -Value 'import "./tools/merge-config.mjs";' -Encoding Ascii
+    $Receipt = [ordered]@{ repository = $SourceRepository; version = $SourceVersion; commitSHA = $SourceCommit } | ConvertTo-Json
+    [IO.File]::WriteAllText((Join-Path $StagedServer "runtime\source-receipt.json"), $Receipt + [Environment]::NewLine, (New-Object System.Text.UTF8Encoding($false)))
+
+    if (Test-Path $ServerDir) {
+        $BackupDir = Join-Path $BaseDir ("server.backup-" + (Get-Date).ToUniversalTime().ToString("yyyyMMddTHHmmssZ"))
+        if (Test-Path $BackupDir) { throw "Каталог резервной копии уже существует: $BackupDir" }
+        Move-Item -LiteralPath $ServerDir -Destination $BackupDir
+    }
+    try {
+        Move-Item -LiteralPath $StagedServer -Destination $ServerDir
+    } catch {
+        if ($BackupDir -and (Test-Path $BackupDir) -and -not (Test-Path $ServerDir)) { Move-Item -LiteralPath $BackupDir -Destination $ServerDir; $BackupDir = $null }
+        throw
+    }
+    Write-Ok "Runtime $SourceVersion активирован: $ServerDir"
+    if ($BackupDir) { Write-Ok "Предыдущая версия сохранена: $BackupDir" }
+} catch {
+    Write-Err "Не удалось подготовить runtime: $($_.Exception.Message)"
+    throw "Public runtime installation failed."
 } finally {
-    Pop-Location
+    if (Test-Path $StageRoot) { Remove-Item -LiteralPath $StageRoot -Recurse -Force -ErrorAction SilentlyContinue }
 }
-if ($LASTEXITCODE -ne 0 -or -not (Test-Path $CliJs)) {
-    Write-Err "Установка не удалась. Проверьте интернет и запустите скрипт снова. Подробности: docs/TROUBLESHOOTING.md"
+
+if ($RuntimeOnly) {
+    Write-Ok "Runtime установлен. Режим -RuntimeOnly не запрашивал ключи, не входил в Telegram и не менял конфиги клиентов или службы."
     return
 }
-Write-Ok "Сервер установлен: $ServerDir"
-
-# --- Windows: патча больше не нужно ------------------------------------------
-# Раньше здесь накладывался свой патч: Node на Windows не умеет слушать unix-сокет
-# по файловому пути (listen EACCES), и сервер падал при старте. В 1.41.5 автор
-# пакета починил это сам — dist/lock.js переводит IPC на именованный канал
-# \\.\pipe\mcp-telegram-<папка сессии>. Наш патч искал старый код socketPath(),
-# которого больше нет, и на свежей версии просто падал бы с ошибкой.
 
 # ---------- шаг 3: api_id / api_hash ----------------------------------------
 Write-Step "Шаг 3/7 · Ключи Telegram API (api_id / api_hash)"
@@ -192,7 +276,7 @@ if not exist "%ENV_FILE%" (
   echo telegram-mcp: missing %ENV_FILE% - run install.ps1 again 1>&2
   exit /b 78
 )
-for /f "usebackq tokens=1,* delims==" %%a in ("%ENV_FILE%") do set "%%a=%%b"
+if not "%TELEGRAM_MCP_NO_AUTH%"=="1" for /f "usebackq tokens=1,* delims==" %%a in ("%ENV_FILE%") do set "%%a=%%b"
 if "%TELEGRAM_SESSION_PATH%"=="" set "TELEGRAM_SESSION_PATH=%USERPROFILE%\.telegram-mcp\session"
 "__NODE_BIN__" "%USERPROFILE%\.telegram-mcp\server\node_modules\@overpod\mcp-telegram\dist\cli.js" %*
 '@
@@ -206,174 +290,14 @@ if ($NodeBin -match '^[\x20-\x7E]+$') {
 }
 Set-Content -Path $RunCmd -Value $RunCmdContent -Encoding Ascii
 
-$DoctorContent = @'
-#!/usr/bin/env node
-// Доктор: подключается к Telegram MCP как настоящий клиент и вызывает telegram-status.
-// Использование: node doctor.mjs <команда-сервера> [аргументы...]
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
-const [command, ...args] = process.argv.slice(2);
-if (!command) {
-  console.error("Использование: node doctor.mjs <команда-сервера> [аргументы...]");
-  process.exit(2);
-}
 
-const transport = new StdioClientTransport({ command, args, env: { ...process.env } });
-const client = new Client({ name: "telegram-mcp-doctor", version: "1.0.0" });
-const timer = setTimeout(() => {
-  console.error("[X] Сервер не ответил за 90 секунд. Проверьте интернет и docs/TROUBLESHOOTING.md");
-  process.exit(1);
-}, 90000);
 
-try {
-  await client.connect(transport);
-  const tools = await client.listTools();
-  console.log(`[OK] MCP-сервер запустился, инструментов доступно: ${tools.tools.length}`);
-  const status = await client.callTool({ name: "telegram-status", arguments: {} });
-  const text = (status.content ?? []).map((i) => i.text ?? "").join("\n").trim();
-  console.log(text);
-  if (status.isError) {
-    console.error("[!] Инструмент telegram-status вернул ошибку — см. текст выше.");
-    process.exitCode = 1;
-  }
-  if (/not\s+(logged|connected|authorized)/i.test(text)) {
-    console.error("[!] Похоже, вы ещё не вошли в аккаунт — выполните вход по QR-коду (login).");
-    process.exitCode = 1;
-  }
-} catch (error) {
-  console.error(`[X] Ошибка: ${error instanceof Error ? error.message : String(error)}`);
-  process.exitCode = 1;
-} finally {
-  clearTimeout(timer);
-  await client.close().catch(() => {});
-}
-'@
-Set-Content -Path $DoctorJs -Value $DoctorContent -Encoding UTF8
-
-$MergerContent = @'
-#!/usr/bin/env node
-// Безопасно добавляет (или удаляет) сервер "telegram" в JSON-конфиг MCP-клиента.
-// Перед изменением делает резервную копию рядом с конфигом.
-// Использование:
-//   node merge-config.mjs <config.json> <command> [args...]   — добавить/обновить
-//   node merge-config.mjs <config.json> --remove              — удалить
-import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync } from "node:fs";
-import { dirname } from "node:path";
-
-const [configPath, command, ...args] = process.argv.slice(2);
-if (!configPath || !command) {
-  console.error("Использование: node merge-config.mjs <config.json> <command|--remove> [args...]");
-  process.exit(2);
-}
-
-let config = {};
-if (existsSync(configPath)) {
-  const raw = readFileSync(configPath, "utf8");
-  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-  copyFileSync(configPath, `${configPath}.backup-${stamp}`);
-  if (raw.trim() !== "") {
-    try {
-      config = JSON.parse(raw);
-    } catch {
-      console.error(`[X] Файл повреждён (невалидный JSON): ${configPath}. Исправьте его вручную.`);
-      process.exit(1);
-    }
-  }
-} else {
-  mkdirSync(dirname(configPath), { recursive: true });
-}
-
-config.mcpServers = config.mcpServers ?? {};
-if (command === "--remove") {
-  delete config.mcpServers.telegram;
-  console.log(`[OK] Сервер "telegram" удалён из ${configPath}`);
-} else {
-  config.mcpServers.telegram = args.length > 0 ? { command, args } : { command };
-  console.log(`[OK] Сервер "telegram" добавлен в ${configPath}`);
-}
-writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n");
-'@
-Set-Content -Path $MergerJs -Value $MergerContent -Encoding UTF8
 
 $DaemonPs1 = Join-Path $BaseDir "daemon-setup.ps1"
-$DaemonContent = @'
-# Telegram MCP — постоянный фоновый сервис (Windows, Планировщик заданий).
-# Нужен, когда с одним аккаунтом работают несколько AI-агентов одновременно:
-# сервис всегда владеет соединением, агенты подключаются к нему как клиенты,
-# и закрытие любого агента не отключает Telegram у остальных.
-# Использование: .\daemon-setup.ps1 [install|remove|restart|status]
-param([string]$Cmd = "install")
+Copy-Item -LiteralPath (Join-Path $ServerDir "tools\daemon-setup.ps1") -Destination $DaemonPs1 -Force
 
-$ErrorActionPreference = "Stop"
-
-$TaskName = "TelegramMcpDaemon"
-$BaseDir  = Join-Path $env:USERPROFILE ".telegram-mcp"
-$RunCmd   = Join-Path $BaseDir "run.cmd"
-$VbsPath  = Join-Path $BaseDir "daemon.vbs"
-$LockFile = Join-Path $BaseDir "daemon.lock"
-
-if (-not (Test-Path $RunCmd)) {
-    Write-Host "[X] Нет $RunCmd — сначала запустите install.ps1" -ForegroundColor Red
-    exit 1
-}
-
-function Stop-DaemonProcess {
-    if (Test-Path $LockFile) {
-        $pidText = (Get-Content $LockFile -TotalCount 1 -ErrorAction SilentlyContinue)
-        if ($pidText -match '^\d+$') {
-            try { Stop-Process -Id ([int]$pidText) -Force -ErrorAction Stop } catch { }
-        }
-    }
-}
-
-switch ($Cmd) {
-    "install" {
-        $VbsContent = 'CreateObject("WScript.Shell").Run """__RUN_CMD__"" serve", 0, False'
-        Set-Content -Path $VbsPath -Value $VbsContent.Replace("__RUN_CMD__", $RunCmd) -Encoding Ascii
-
-        $action   = New-ScheduledTaskAction -Execute "wscript.exe" -Argument "`"$VbsPath`""
-        $trigger  = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
-        $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit ([TimeSpan]::Zero)
-        Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Settings $settings -Force | Out-Null
-        Start-ScheduledTask -TaskName $TaskName
-        Write-Host "[OK] Сервис установлен и запущен (автостарт при входе в систему)." -ForegroundColor Green
-    }
-    "remove" {
-        try { Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue } catch { }
-        try { Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false -ErrorAction SilentlyContinue } catch { }
-        Stop-DaemonProcess
-        Remove-Item $VbsPath -ErrorAction SilentlyContinue
-        Write-Host "[OK] Сервис остановлен и удалён" -ForegroundColor Green
-    }
-    "restart" {
-        Stop-DaemonProcess
-        Start-Sleep -Seconds 1
-        Start-ScheduledTask -TaskName $TaskName
-        Write-Host "[OK] Сервис перезапущен" -ForegroundColor Green
-    }
-    "status" {
-        $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
-        if (-not $task) { Write-Host "Сервис не установлен"; exit 0 }
-        Write-Host "Задание: $($task.TaskName), состояние: $($task.State)"
-        if (Test-Path $LockFile) {
-            $pidText = (Get-Content $LockFile -TotalCount 1 -ErrorAction SilentlyContinue)
-            if ($pidText -match '^\d+$' -and (Get-Process -Id ([int]$pidText) -ErrorAction SilentlyContinue)) {
-                Write-Host "Владелец соединения: процесс PID $pidText — работает"
-            } else {
-                Write-Host "Процесс-владелец не найден (сервис мог ещё не стартовать)"
-            }
-        }
-    }
-    default {
-        Write-Host "Использование: .\daemon-setup.ps1 [install|remove|restart|status]"
-        exit 2
-    }
-}
-'@
-Set-Content -Path $DaemonPs1 -Value $DaemonContent -Encoding UTF8
-
-Write-Ok "Служебные скрипты записаны (run.cmd, doctor.mjs, merge-config.mjs, daemon-setup.ps1)"
+Write-Ok "Обёртка run.cmd создана; doctor, merge-config и daemon-setup взяты из закреплённого архива."
 
 # ---------- шаг 4: вход по QR-коду ------------------------------------------
 Write-Step "Шаг 4/7 · Вход в Telegram по QR-коду"
@@ -414,14 +338,21 @@ if ($DoLogin) {
     Remove-Item Env:TELEGRAM_2FA_PASSWORD -ErrorAction SilentlyContinue
     if ($LoginExit -ne 0) {
         Write-Err "Вход не удался. Посмотрите docs/TROUBLESHOOTING.md и запустите установщик снова."
-        return
+        throw "Telegram login did not complete."
     }
     Write-Ok "Вход выполнен, сессия сохранена: $SessionPath"
 
-    # Если фоновый сервис уже настроен — перезапускаем, чтобы он подхватил новую сессию
-    if (Get-ScheduledTask -TaskName "TelegramMcpDaemon" -ErrorAction SilentlyContinue) {
+}
+
+$ManagedDaemonTask = Get-ScheduledTask -TaskName "TelegramMcpDaemon" -ErrorAction SilentlyContinue
+$ManagedDaemonExisting = [bool]$ManagedDaemonTask
+if ($ManagedDaemonExisting) {
+    try {
         & $DaemonPs1 restart
-        Write-Ok "Фоновый сервис перезапущен с новой сессией"
+    } catch {
+        Write-Err "Runtime обновлён, но новый owner службы не подтверждён: $($_.Exception.Message)"
+        Write-Host "Не подключайте клиентов. Проверьте службу, остановите старые MCP-клиенты и повторите установку." -ForegroundColor Yellow
+        throw "Managed Telegram MCP service restart failed."
     }
 }
 
@@ -473,10 +404,12 @@ Write-Host "владеет соединением с Telegram, агенты по
 Write-Host "и закрытие любого агента не отключает Telegram у остальных."
 Write-Host "Настроить можно и позже: powershell $DaemonPs1 install"
 Write-Host ""
-if (Ask-YesNo "Настроить фоновый сервис сейчас?") {
+if ($ManagedDaemonExisting) {
+    Write-Ok "Управляемая служба уже настроена и перезапущена."
+} elseif (Ask-YesNo "Настроить фоновый сервис сейчас?") {
     & $DaemonPs1 install
     if ($LASTEXITCODE -eq 0) {
-        Write-Ok "Фоновый сервис работает (подробнее: docs/08-multi-agent.md)"
+        Write-Ok "Фоновый сервис установлен; подключение проверю в следующем шаге."
     } else {
         Write-Warn2 "Не удалось настроить сервис — см. docs/08-multi-agent.md"
     }
@@ -485,11 +418,12 @@ if (Ask-YesNo "Настроить фоновый сервис сейчас?") {
 # ---------- шаг 7: проверка ---------------------------------------------------
 Write-Step "Шаг 7/7 · Проверяю подключение (doctor)"
 
-& $NodeBin $DoctorJs "cmd" "/c" $RunCmd
+& $NodeBin $DoctorJs --status "cmd" "/c" $RunCmd
 if ($LASTEXITCODE -eq 0) {
-    Write-Ok "Всё работает!"
+    Write-Ok "Runtime, каталог инструментов и авторизованное подключение подтверждены."
 } else {
-    Write-Warn2 "Проверка не прошла. Загляните в docs/TROUBLESHOOTING.md — там разобраны типовые ошибки."
+    Write-Err "Runtime установлен, но подключение или каталог актуального owner не подтверждены. Закройте/перезапустите службу или MCP-клиенты и повторите проверку doctor --status."
+    throw "Telegram MCP connection readiness was not verified."
 }
 
 # ---------- итог --------------------------------------------------------------

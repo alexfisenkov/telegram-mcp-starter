@@ -1,8 +1,8 @@
-# Все инструменты по категориям (168 по умолчанию + 13 опциональных)
+# Все инструменты по категориям (180 по умолчанию + 13 опциональных)
 
 Полный справочник того, что Claude может делать в вашем Telegram после подключения. Названия инструментов приведены для понимания — **запоминать их не нужно**: пишете Claude обычным языком («перешли это сообщение Ивану»), он сам выбирает инструмент.
 
-Источник: [@overpod/mcp-telegram v1.41.x](https://github.com/mcp-telegram/mcp-telegram). Инструменты с пометкой *(Premium)* требуют Telegram Premium на вашем аккаунте.
+Каталог сверяется с runtime fixtures проекта. Инструменты с пометкой *(Premium)* требуют Telegram Premium на вашем аккаунте. Описание полного состава и границ расширений: [архитектура](ARCHITECTURE.md).
 
 ## Подключение
 `telegram-status` (кто я / всё ли работает), `telegram-login` (вход по QR), `telegram-logout`
@@ -44,7 +44,7 @@
 `telegram-get-chat-info`, `telegram-get-chat-members`, `telegram-get-message-read-participants` (кто прочитал), `telegram-get-outbox-read-date` (когда прочитали вас)
 
 ## Темы форумов (топики)
-`telegram-list-topics`, `telegram-read-topic-messages`, `telegram-create-topic`, `telegram-edit-topic`, `telegram-delete-topic`
+`telegram-list-topics`, `telegram-read-topic-messages`, `telegram-create-topic`, `telegram-edit-topic`, `telegram-delete-topic`, `telegram-pin-topic` (Starter), `telegram-reorder-pinned-topics` (Starter)
 
 ## Папки чатов
 `telegram-get-chat-folders`, `telegram-create-folder`, `telegram-edit-folder`, `telegram-delete-folder`, `telegram-reorder-folders`, `telegram-get-suggested-folders`, `telegram-toggle-folder-tags`
@@ -83,8 +83,12 @@
 ## Реальное время (обновления)
 `telegram-get-state`, `telegram-get-updates`, `telegram-get-channel-updates`
 
+## Telegram Mini Apps (Starter)
+
+MTProto: `telegram-list-mini-apps`, `telegram-get-mini-app-info`, `telegram-open-mini-app`, `telegram-prolong-mini-app`. Локальный UI: `telegram-miniapp-read`, `telegram-miniapp-click`, `telegram-miniapp-fill`, `telegram-miniapp-screenshot`, `telegram-miniapp-close`. Для browser UI требуется доступный Chromium; Playwright package не гарантирует, что браузер установлен. При необходимости пользователь может отдельно выполнить `npx playwright install chromium`; установщик эту загрузку не запускает.
+
 ## Прочее
-`telegram-get-fact-check`, `telegram-edit-fact-check`, `telegram-delete-fact-check`
+`telegram-get-fact-check`, `telegram-edit-fact-check`, `telegram-delete-fact-check`, `telegram-get-saved-music`
 
 ## Опциональные (выключены по умолчанию)
 
@@ -96,4 +100,6 @@
 | `MCP_TELEGRAM_ENABLE_STARS=1` | баланс Stars, транзакции, подписки, звёздные подарки |
 | `MCP_TELEGRAM_ENABLE_QUICK_REPLIES=1` | быстрые ответы Telegram Business |
 
-После изменения `telegram.env` перезапустите Claude.
+После изменения `telegram.env` перезапустите подключённый MCP-клиент. Все три группы вместе дают 193 инструмента.
+
+Фактические имена и схемы закреплены в `tests/fixtures/runtime-tools-standard.json` и `tests/fixtures/runtime-tools-all-opt-in.json`; smoke проверка сверяет с ними MCP tools/list. Обычный doctor проверяет каталог без авторизации, а `doctor.mjs --status` вызывает авторизованный read-only `telegram-status`. Подробно: [проверка установки](07-verify.md).

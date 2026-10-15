@@ -1,0 +1,115 @@
+{
+  "schema": "telegram-mcp-starter-runtime-v1",
+  "packageName": "@overpod/mcp-telegram",
+  "packageVersion": "1.43.1",
+  "license": "MIT",
+  "telegramDependency": {
+    "packageName": "teleproto",
+    "version": "1.229.0",
+    "alias": "telegram"
+  },
+  "files": [
+    {
+      "path": "dist/telegram-client.js",
+      "source": "upstream-postimage",
+      "preimageSha256": "0f327c726a8b9030c63f3632be6b13529d5f64d5e1c2959744d5a93bca495ded",
+      "postimageSha256": "2b2a2206c1396e6c372e0e149691808bc064ed968dffbf9774addf3f4e47f903"
+    },
+    {
+      "path": "dist/telegram-helpers.js",
+      "source": "upstream-postimage",
+      "preimageSha256": "57817cb62d968c845b6df423bb67520e9223ac48e25bac9e95205deba48c1636",
+      "postimageSha256": "7cbac51d378a84efff27c89d1e22835bb65ba3c62fac2c102459996aaf7662ea"
+    },
+    {
+      "path": "dist/telegram-client.d.ts",
+      "source": "upstream-postimage",
+      "preimageSha256": "452287a02d5498e2c2f29d5e250ee29c6f4e08c2a77e3fc9849ffb68fae06a48",
+      "postimageSha256": "c6a3f05c64325ffec44018f903e194d6f1ddb9317543a50aa37ea686c14e6999"
+    },
+    {
+      "path": "dist/master.js",
+      "source": "upstream-postimage",
+      "preimageSha256": "8c9f146e4d62d5d3cd7091c9dc8645b7b69752cb4e5ac0e2e48288cea18dbbe7",
+      "postimageSha256": "affbdb2db9196a4421a541fb220d0dda7a65cd76bd430c4b627cad2d636ac3a5"
+    },
+    {
+      "path": "dist/client.js",
+      "source": "upstream-postimage",
+      "preimageSha256": "21816c20794816a5850ff649def69cd58f413b722620f610a22fd4e2a86d6f9a",
+      "postimageSha256": "0bce3896eed0d929fd6e7ca782026d80a8df5208161ef1002bc4a38beadf726e"
+    },
+    {
+      "path": "dist/tools/messages.js",
+      "source": "upstream-postimage",
+      "preimageSha256": "7f998bfd0daa76b91e7b58795f88ec4db87e29d661168cdd1a8650c62d14d5f3",
+      "postimageSha256": "938ecb673f41c4da5b8a211dfa480e43e7dc36ed0978c2bbdbb36db121aa45f2"
+    },
+    {
+      "path": "dist/tools/index.js",
+      "source": "upstream-postimage",
+      "preimageSha256": "5bfb1d046e83cc08c937ea0fc1ba133f7d11bb0a0a2804d635a5bdccdbb8770d",
+      "postimageSha256": "d068d99a5953f18287dfafae5d7015af9e22d349f84305d99b8a8545224461cd"
+    },
+    {
+      "path": "dist/ipc-protocol.js",
+      "source": "upstream-postimage",
+      "preimageSha256": "9aedf0bb0e0cc34e85226a132fe68658daad691f7e5af716b99b922ee05f3968",
+      "postimageSha256": "0623b67cb2572604c3add05b8337b9debf799cb7deadc759b457b3fb4e18cb5a"
+    },
+    {
+      "path": "dist/tools/media.js",
+      "source": "upstream-postimage",
+      "preimageSha256": "c7764685d3d63794e4eb1a940b32e3b6b3ed2009b955ae9f7ea52c154c1dfcaf",
+      "postimageSha256": "5ccaed079b551d88e229d0a9c5c8633a19bdee4f3cdd9f25d6206341bbaa04f7"
+    },
+    {
+      "path": "dist/tools/stickers.js",
+      "source": "upstream-postimage",
+      "preimageSha256": "650b8e671e3102ff7a6955292183dd7d71063cedd4f11ccd79e90a0647ef8f89",
+      "postimageSha256": "6a26f1db2a0f912d52b75a46a646427d8ccefae72a45460c4b24eeb588d51134"
+    },
+    {
+      "path": "dist/tools/extras.js",
+      "source": "upstream-postimage",
+      "preimageSha256": "8c76361ab3b9234710267fcfcad4c84b47673dcfaaf8a4e08e4a7ba369dc9a54",
+      "postimageSha256": "cc5eebb7f7a231bbe9f9df1e02edf16803ad8f3128358fc2b955939691810648"
+    },
+    {
+      "path": "dist/tools/chats.js",
+      "source": "upstream-postimage",
+      "preimageSha256": "d853740241509f7c2964b261fd9f207d329dddb6e760b0d90982a1591bd9e503",
+      "postimageSha256": "11af5bde437b98a372d0bb2fec6cd12cbb5e1796f06b538d532b08c3a7a20ef8"
+    },
+    {
+      "path": "dist/tools/account.js",
+      "source": "upstream-postimage",
+      "preimageSha256": "fdb0b87f59cc8b021b1f19bd82b773ab21f2bd8322c5b6ee85deb1d38030b995",
+      "postimageSha256": "1fb9cd572830d65cc6cdaf903c550e0eb127fdc6a1221f6e76fa2ebdc929665e"
+    },
+    {
+      "path": "dist/miniapp-shim.js",
+      "source": "starter-extension",
+      "preimageSha256": null,
+      "postimageSha256": "a7712566ee666a7d9701ccd8b1a3f6b462e4574e1e81ac814753a04deac1d216"
+    },
+    {
+      "path": "dist/miniapp-browser.js",
+      "source": "starter-extension",
+      "preimageSha256": null,
+      "postimageSha256": "87cf556fd9f3d9d0a14f96ad1faea33118068cd1928a8cc2f54b928e2c0238a1"
+    },
+    {
+      "path": "dist/tools/miniapps.js",
+      "source": "starter-extension",
+      "preimageSha256": null,
+      "postimageSha256": "60e3502e3af4130add796f00f9f63707710c854c94e8edfb7da269f62ab0dd37"
+    },
+    {
+      "path": "dist/tools/miniapp-ui.js",
+      "source": "starter-extension",
+      "preimageSha256": null,
+      "postimageSha256": "fd46909de5e239a09e8499b63148044cd16824d5f022a1479a338c3f7dbca7c4"
+    }
+  ]
+}
