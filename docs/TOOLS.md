@@ -1,4 +1,4 @@
-# Все инструменты по категориям (180 по умолчанию + 13 опциональных)
+# Все инструменты по категориям (183 по умолчанию + 13 опциональных)
 
 Полный справочник того, что Claude может делать в вашем Telegram после подключения. Названия инструментов приведены для понимания — **запоминать их не нужно**: пишете Claude обычным языком («перешли это сообщение Ивану»), он сам выбирает инструмент.
 
@@ -20,7 +20,7 @@
 `telegram-save-draft`, `telegram-get-drafts`, `telegram-clear-drafts`
 
 ## Медиа и файлы
-`telegram-send-file`, `telegram-send-album` (2–10 фото/видео), `telegram-download-media`, `telegram-get-profile-photo`, `telegram-get-web-preview`
+`telegram-send-file` (с `parseMode` для оформленной подписи), `telegram-send-album` (2–10 фото/видео), `telegram-download-media`, `telegram-prepare-media-caption`, `telegram-edit-media-caption`, `telegram-replace-message-media`, `telegram-get-profile-photo`, `telegram-get-web-preview`
 
 `telegram-download-media` пишет файл на машину, где работает MCP-сервер. Без `downloadPath` файл ложится в папку скачиваний рядом с сессией и хранится трое суток, а ответ подсказывает, как его забрать. С `inline: true` картинка до 3,5 МБ приходит прямо в ответе.
 
@@ -102,6 +102,6 @@ MTProto: `telegram-list-mini-apps`, `telegram-get-mini-app-info`, `telegram-open
 | `MCP_TELEGRAM_ENABLE_STARS=1` | баланс Stars, транзакции, подписки, звёздные подарки |
 | `MCP_TELEGRAM_ENABLE_QUICK_REPLIES=1` | быстрые ответы Telegram Business |
 
-После изменения `telegram.env` перезапустите подключённый MCP-клиент. Все три группы вместе дают 193 инструмента.
+После изменения `telegram.env` перезапустите подключённый MCP-клиент. Все три группы вместе дают 196 инструмента.
 
 Фактические имена и схемы закреплены в `tests/fixtures/runtime-tools-standard.json` и `tests/fixtures/runtime-tools-all-opt-in.json`; smoke проверка сверяет с ними MCP tools/list. Обычный doctor проверяет каталог без авторизации, а `doctor.mjs --status` вызывает авторизованный read-only `telegram-status`. Подробно: [проверка установки](07-verify.md).

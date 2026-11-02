@@ -22,7 +22,7 @@ node ~/.telegram-mcp/server/doctor.mjs ~/.telegram-mcp/run.sh
 node "$env:USERPROFILE\.telegram-mcp\server\doctor.mjs" cmd /c "$env:USERPROFILE\.telegram-mcp\run.cmd"
 ```
 
-Он использует тестовые credentials, несуществующий session path во временной папке и dead loopback proxy, затем выполняет MCP initialize + tools/list. Ожидается 180 инструментов; при полном opt-in каталоге — до 193 в авторизованном status режиме.
+Он использует тестовые credentials, несуществующий session path во временной папке и dead loopback proxy, затем выполняет MCP initialize + tools/list. Ожидается 183 инструментов; при полном opt-in каталоге — до 196 в авторизованном status режиме.
 
 Для проверки реального подключённого аккаунта передайте `--status` сразу после `doctor.mjs`. Этот режим использует штатную обёртку и вызывает только read-only `telegram-status`; он требует реальной авторизованной сессии. Установщик выполняет именно эту readiness-проверку. Например:
 
@@ -56,4 +56,4 @@ Claude всегда действует **от вашего имени**. Пре�
 
 ## Полный список возможностей
 
-180 инструментов (193 при включении всех opt-in групп) по категориям: [TOOLS.md](TOOLS.md) · Примеры сценариев: [FAQ.md](FAQ.md)
+183 инструментов (196 при включении всех opt-in групп) по категориям: [TOOLS.md](TOOLS.md) · Примеры сценариев: [FAQ.md](FAQ.md)

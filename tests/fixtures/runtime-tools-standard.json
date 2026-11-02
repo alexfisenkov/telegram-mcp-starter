@@ -1,8 +1,8 @@
 {
-  "count": 180,
+  "schema": "telegram-mcp-starter-tool-schema-v1",
   "packageVersion": "1.43.1",
   "profile": "standard",
-  "schema": "telegram-mcp-starter-tool-schema-v1",
+  "count": 183,
   "tools": [
     {
       "annotations": {
@@ -767,6 +767,10 @@
             "description": "Absolute path on the MCP server machine, its directory must exist. Omit to use the server's downloads folder.",
             "type": "string"
           },
+          "inline": {
+            "description": "Also return the image inside the reply (jpg, png, webp, gif up to 3.5 MB)",
+            "type": "boolean"
+          },
           "messageId": {
             "description": "Message ID containing media",
             "type": "number"
@@ -776,10 +780,6 @@
             "maximum": 9007199254740991,
             "minimum": 0,
             "type": "integer"
-          },
-          "inline": {
-            "type": "boolean",
-            "description": "Also return the image inside the reply (jpg, png, webp, gif up to 3.5 MB)"
           }
         },
         "required": [
@@ -983,6 +983,46 @@
         "type": "object"
       },
       "name": "telegram-edit-group"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "caption": {
+            "description": "Complete replacement caption; empty clears it",
+            "type": "string"
+          },
+          "chatId": {
+            "description": "Chat ID or username",
+            "type": "string"
+          },
+          "messageId": {
+            "description": "Existing outgoing media message ID",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          },
+          "parseMode": {
+            "description": "Markup; omitted means literal text",
+            "enum": [
+              "html",
+              "md"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId",
+          "messageId",
+          "caption"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-edit-media-caption"
     },
     {
       "annotations": {
@@ -3071,6 +3111,34 @@
     {
       "annotations": {
         "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "caption": {
+            "description": "Complete caption",
+            "type": "string"
+          },
+          "parseMode": {
+            "description": "Markup; omitted means literal text",
+            "enum": [
+              "html",
+              "md"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "caption"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-prepare-media-caption"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
         "readOnlyHint": false
       },
       "inputSchema": {
@@ -3397,6 +3465,70 @@
         "type": "object"
       },
       "name": "telegram-reorder-pinned-topics"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "caption": {
+            "type": "string"
+          },
+          "chatId": {
+            "type": "string"
+          },
+          "dryRun": {
+            "default": true,
+            "type": "boolean"
+          },
+          "expectedAccountId": {
+            "pattern": "^\\d+$",
+            "type": "string"
+          },
+          "expectedCaptionSha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
+          },
+          "expectedDocumentId": {
+            "pattern": "^\\d+$",
+            "type": "string"
+          },
+          "expectedPeerKey": {
+            "type": "string"
+          },
+          "expectedSourceSha256": {
+            "description": "Exact source SHA-256 returned by dryRun; required for apply",
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
+          },
+          "filePath": {
+            "type": "string"
+          },
+          "messageId": {
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          },
+          "parseMode": {
+            "enum": [
+              "html",
+              "md"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId",
+          "messageId",
+          "filePath",
+          "expectedAccountId"
+        ],
+        "type": "object"
+      },
+      "name": "telegram-replace-message-media"
     },
     {
       "annotations": {
@@ -3836,6 +3968,14 @@
           },
           "filePath": {
             "description": "Absolute path to file",
+            "type": "string"
+          },
+          "parseMode": {
+            "description": "Caption markup; omitted means literal plain text",
+            "enum": [
+              "html",
+              "md"
+            ],
             "type": "string"
           },
           "replyTo": {

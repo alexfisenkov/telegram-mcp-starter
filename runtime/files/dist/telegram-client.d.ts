@@ -109,7 +109,11 @@ export declare class TelegramService {
         effect?: string;
     }): Promise<Api.Message | Api.UpdateShortSentMessage | undefined>;
     /** Telegram MCP Starter M10: verified video metadata plus stable messageId for reply/read-back. */
-    sendFile(chatId: string, filePath: string, caption?: string, onProgress?: (progress: number, total?: number) => void): Promise<{
+    /** Telegram MCP Starter M20: classic caption entities and live account preflight. */
+    prepareMediaCaption(caption?: string, parseMode?: "html" | "md"): Promise<{ text: string; entities: Api.TypeMessageEntity[]; codepoints: number; utf16Length: number; utf8Bytes: number; limit: number; premium: boolean; accountId: string }>;
+    replaceMessageMedia(args: {chatId: string; messageId: number; filePath: string; expectedAccountId: string; dryRun?: boolean; expectedPeerKey?: string; expectedDocumentId?: string; expectedCaptionSha256?: string; expectedSourceSha256?: string; caption?: string; parseMode?: "html" | "md"}, onProgress?: (progress: number, total?: number) => void): Promise<Record<string, unknown>>;
+    editMediaCaption(chatId: string, messageId: number, caption: string, parseMode?: "html" | "md"): Promise<{ messageId: number; codepoints: number; limit: number }>;
+    sendFile(chatId: string, filePath: string, caption?: string, onProgress?: (progress: number, total?: number) => void, asDocument?: boolean, replyTo?: number, topicId?: number, parseMode?: "html" | "md"): Promise<{
         id: number;
         messageId: number;
         type: "video" | "file";
@@ -365,6 +369,8 @@ export declare class TelegramService {
     private resolveSenderName;
     getMessages(chatId: string, limit?: number, offsetId?: number, minDate?: number, maxDate?: number): Promise<Array<{
         id: number;
+        /** Telegram MCP Starter M20b: safe native metadata, no accessHash/fileReference. */
+        native: { out: boolean | null; peerId: { type: string; id: string } | null; fromId: { type: string; id: string } | null; hasDirectDocument: boolean; hasMediaDocument: boolean; hasPhoto: boolean; documentId: string | null };
         text: string;
         sender: string;
         date: string;

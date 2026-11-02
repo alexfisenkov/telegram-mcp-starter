@@ -43,8 +43,8 @@ try {
       manifest.telegramDependency?.alias !== "telegram") {
     throw new Error("установленная telegram dependency не совпадает с закреплённым teleproto alias");
   }
-  if (!Array.isArray(manifest.files) || manifest.files.length !== 17) {
-    throw new Error("manifest должен перечислять 17 runtime-файлов");
+  if (!Array.isArray(manifest.files) || manifest.files.length !== 19) {
+    throw new Error("manifest должен перечислять 19 runtime-файлов");
   }
   for (const entry of manifest.files) {
     if (typeof entry.path !== "string" || entry.path.startsWith("/") || entry.path.split(/[\\/]/).includes("..")) {
@@ -91,10 +91,10 @@ const timer = setTimeout(() => {
 try {
   await client.connect(transport);
   const tools = await client.listTools();
-  const minimumTools = 180;
-  const maximumTools = statusMode ? 193 : 180;
+  const minimumTools = 183;
+  const maximumTools = statusMode ? 196 : 183;
   if (tools.tools.length < minimumTools || tools.tools.length > maximumTools) {
-    throw new Error(`Ожидалось ${statusMode ? "180–193" : "180"} инструментов для закреплённого runtime; получено ${tools.tools.length}. Перезапустите старую службу или MCP-клиенты и повторите проверку.`);
+    throw new Error(`Ожидалось ${statusMode ? "183–196" : "183"} инструментов для закреплённого runtime; получено ${tools.tools.length}. Перезапустите старую службу или MCP-клиенты и повторите проверку.`);
   }
   console.log(`[OK] MCP initialize + tools/list прошли без вызова инструментов: ${tools.tools.length} доступно.`);
   if (statusMode) {

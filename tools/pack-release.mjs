@@ -13,7 +13,7 @@ export const RUNTIME_SOURCE_PATHS = Object.freeze([
   'telegram-client.js','telegram-helpers.js','telegram-client.d.ts','master.js','client.js',
   'tools/messages.js','tools/index.js','ipc-protocol.js','tools/media.js','tools/stickers.js',
   'tools/extras.js','tools/chats.js','tools/account.js','miniapp-shim.js','miniapp-browser.js',
-  'tools/miniapps.js','tools/miniapp-ui.js',
+  'tools/miniapps.js','tools/miniapp-ui.js','replace-message-media.js','rate-limiter.js',
 ].map(path => 'runtime/files/dist/' + path));
 const RUNTIME_PATHS = new Set(RUNTIME_SOURCE_PATHS);
 const REQUIRED = ['package.json','package-lock.json','LICENSE','THIRD_PARTY_NOTICES.md','runtime/manifest.json','runtime/LICENSE','tools/apply-patches.mjs', ...RUNTIME_SOURCE_PATHS];

@@ -6,7 +6,7 @@
 
 Публичный перечень манифеста содержит 13 upstream postimages и 4 новых файла расширения. Вместе они добавляют 11 инструментов: `telegram-pin-topic`, `telegram-reorder-pinned-topics`; четыре MTProto-инструмента Mini Apps (`telegram-list-mini-apps`, `telegram-get-mini-app-info`, `telegram-open-mini-app`, `telegram-prolong-mini-app`); пять UI-инструментов (`telegram-miniapp-read`, `telegram-miniapp-click`, `telegram-miniapp-fill`, `telegram-miniapp-screenshot`, `telegram-miniapp-close`). Расширение использует MTProto для открытия mini app и локальный Playwright слой для взаимодействия с интерфейсом. Наличие пакета Playwright не гарантирует наличие скачанного Chromium; установка браузера может потребоваться отдельно и не выполняется автоматически как часть установки runtime.
 
-Базовая конфигурация публикует 180 инструментов. Ещё 13 инструментов доступны только при явном включении трёх opt-in групп: `MCP_TELEGRAM_ENABLE_GROUP_CALLS=1`, `MCP_TELEGRAM_ENABLE_STARS=1`, `MCP_TELEGRAM_ENABLE_QUICK_REPLIES=1`; вместе получается 193.
+Базовая конфигурация публикует 183 инструментов. Ещё 13 инструментов доступны только при явном включении трёх opt-in групп: `MCP_TELEGRAM_ENABLE_GROUP_CALLS=1`, `MCP_TELEGRAM_ENABLE_STARS=1`, `MCP_TELEGRAM_ENABLE_QUICK_REPLIES=1`; вместе получается 196.
 
 ## Границы компонентов
 

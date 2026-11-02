@@ -1,3 +1,4 @@
+import { replaceMessageMedia as fisReplaceMessageMedia } from "./replace-message-media.js"; // Telegram MCP Starter M21
 import { randomBytes } from "node:crypto";  // Telegram MCP Starter M9-fix-2: уникальное имя обрывка .part
 import { createWriteStream, existsSync, mkdirSync, readdirSync, readFileSync, utimesSync, writeFileSync, renameSync, statSync, unlinkSync, realpathSync } from "node:fs";  // Telegram MCP Starter R3: чтение/запись кэша имён; statSync — Telegram MCP Starter M7, проверка непустого файла после потокового скачивания; realpathSync — M10 dedup upload; readdirSync — M22, чистка папки скачиваний
 import { chmod, readFile, stat, unlink, writeFile } from "node:fs/promises";
@@ -11,6 +12,7 @@ import bigInt from "big-integer";
 import QRCode from "qrcode";
 import { TelegramClient } from "telegram";
 import { CustomFile } from "telegram/client/uploads.js";
+import { _parseMessageText as fisParseCaptionText } from "telegram/client/messageParse.js"; // Telegram MCP Starter (M20): real teleproto module helper
 import { Logger, LogLevel } from "telegram/extensions/Logger.js";
 import { computeCheck } from "telegram/Password.js";
 import { StringSession } from "telegram/sessions/index.js";
@@ -30,7 +32,7 @@ function fisDownloadStallMs() {
 const FIS_DOWNLOADS_KEEP_MS = 3 * 24 * 3600_000;
 const FIS_DOWNLOADS_MAX_BYTES = 20 * 1024 ** 3;
 function fisDownloadsPath() {
-    const state = process.env.TELEGRAM_SESSION_PATH ? dirname(process.env.TELEGRAM_SESSION_PATH) : join(homedir(), ".mcp-telegram");
+    const state = process.env.TELEGRAM_SESSION_PATH ? dirname(process.env.TELEGRAM_SESSION_PATH) : DEFAULT_SESSION_DIR;
     return process.env.TELEGRAM_DOWNLOADS_DIR || join(state, "media", "downloads");
 }
 // Возвращает сумму размеров оставшихся файлов tg-*.
@@ -291,7 +293,7 @@ const NOT_CONNECTED_ERROR = "Not connected. Run telegram-status to check or tele
 // реальные параметры через ffprobe и при невозможности проверки останавливаем
 // отправку: ложные 1x1 хуже явной ошибки.
 const FIS_VIDEO_RE = /\.(?:mp4|m4v|mov|webm)$/i;
-function fisProbeVideo(filePath) {
+function fisProbeVideo(filePath, includeContainer = false) {
     if (!FIS_VIDEO_RE.test(filePath))
         return null;
     if (!existsSync(filePath) || !statSync(filePath).isFile())
@@ -310,7 +312,7 @@ function fisProbeVideo(filePath) {
             const raw = execFileSync(bin, [
                 "-v", "error",
                 "-select_streams", "v:0",
-                "-show_entries", "stream=width,height:format=duration",
+                "-show_entries", includeContainer ? "stream=width,height:format=duration,format_name" : "stream=width,height:format=duration",
                 "-of", "json",
                 filePath,
             ], { encoding: "utf8", maxBuffer: 1024 * 1024 });
@@ -325,6 +327,7 @@ function fisProbeVideo(filePath) {
                 width: Math.round(width),
                 height: Math.round(height),
                 duration: Math.ceil(duration),
+                ...(includeContainer ? {formatName:String(probe?.format?.format_name ?? "")} : {}),
             };
         }
         catch (error) {
@@ -584,6 +587,13 @@ function fisCacheSet(id, name) {
     fisCacheLoad();
     fisNameCache.set(String(id), { name, at: Date.now() });
     fisCacheDirty = true;
+}
+// Telegram MCP Starter (M20b): native peer identity without access hashes or file references.
+function fisCaptionPeerIdentity(peer) {
+    if (peer instanceof Api.PeerUser) return { type: "PeerUser", id: peer.userId.toString() };
+    if (peer instanceof Api.PeerChat) return { type: "PeerChat", id: peer.chatId.toString() };
+    if (peer instanceof Api.PeerChannel) return { type: "PeerChannel", id: peer.channelId.toString() };
+    return null;
 }
 export class TelegramService {
     client = null;
@@ -1350,7 +1360,61 @@ export class TelegramService {
     // Telegram MCP Starter (M11): asDocument=true шлёт видео ДОКУМЕНТОМ (без пережатия
     // Telegram, для перепостинга оригинала) — gramJS forceDocument.
     // Preserve both explicit topic routing and reply targets for uploaded files.
-    async sendFile(chatId, filePath, caption, onProgress, asDocument, replyTo, topicId) {
+    // Telegram MCP Starter (M20): account-specific caption preflight, no MTProto session owner added.
+    async prepareMediaCaption(caption = "", parseMode) {
+        if (!this.client || !this.connected)
+            throw new Error(NOT_CONNECTED_ERROR);
+        if (typeof caption !== "string" || (parseMode !== undefined && parseMode !== "html" && parseMode !== "md"))
+            throw new Error("Invalid caption or parseMode (expected html/md)");
+        let text = caption, entities = [];
+        if (parseMode) {
+            [text, entities] = await fisParseCaptionText(this.client, caption, parseMode);
+        }
+        for (const entity of entities) {
+            if (!Number.isInteger(entity.offset) || !Number.isInteger(entity.length) || entity.offset < 0 || entity.length <= 0 || entity.offset + entity.length > text.length)
+                throw new Error("Invalid caption entity UTF-16 range");
+        }
+        const me = await this.client.getMe();
+        const config = await this.client.invoke(new Api.help.GetAppConfig({ hash: 0 }));
+        const key = me.premium ? "caption_length_limit_premium" : "caption_length_limit_default";
+        const limit = config?.config?.value?.find(entry => entry.key === key)?.value?.value;
+        if (!Number.isSafeInteger(limit) || limit <= 0)
+            throw new Error("Caption limit unavailable in live Telegram app config");
+        // Telegram's UTF-8 length means codepoints (TDLib utf8_length), not encoded bytes.
+        const codepoints = [...text].length;
+        if (codepoints > limit)
+            throw new Error(`CAPTION_TOO_LONG: ${codepoints} codepoints exceeds account limit ${limit}`);
+        return { text, entities, codepoints, utf16Length: text.length, utf8Bytes: Buffer.byteLength(text, "utf8"), limit, premium: !!me.premium, accountId: me.id.toString() };
+    }
+    // Telegram MCP Starter (M20): edit only an existing outgoing media caption; never upload/replace media.
+    async replaceMessageMedia(args, onProgress) {
+        return fisReplaceMessageMedia(this, args, onProgress, fisProbeVideo, fisInputPeerKey);
+    }
+    async editMediaCaption(chatId, messageId, caption, parseMode) {
+        if (!this.client || !this.connected)
+            throw new Error(NOT_CONNECTED_ERROR);
+        if (!Number.isSafeInteger(messageId) || messageId <= 0)
+            throw new Error("Invalid media messageId");
+        const prepared = await this.prepareMediaCaption(caption, parseMode);
+        const peer = await this.resolvePeer(chatId);
+        const messages = await this.client.getMessages(peer, { ids: [messageId] });
+        const message = messages[0];
+        // M20b: own Saved Messages may arrive without out=true; require both self peer and own sender.
+        const inputPeer = await this.client.getInputEntity(peer);
+        const isSelf = inputPeer instanceof Api.InputPeerSelf || (inputPeer instanceof Api.InputPeerUser && inputPeer.userId.toString() === prepared.accountId);
+        // M20c: trusted self Saved peer is the boundary; senderId may be derived from that peer.
+        // Native #32420 had out=false/fromId absent; its own send receipt binds the same messageId.
+        const ownSaved = isSelf && message?.peerId instanceof Api.PeerUser && message.peerId.userId.toString() === prepared.accountId
+            && message?.senderId?.toString() === prepared.accountId
+            && (message.fromId == null || (message.fromId instanceof Api.PeerUser && message.fromId.userId.toString() === prepared.accountId))
+            && !message.fwdFrom && !message.post;
+        const isOwn = message?.out || ownSaved;
+        if (!isOwn || !(message.media instanceof Api.MessageMediaDocument || message.media instanceof Api.MessageMediaPhoto))
+            throw new Error("Caption editing requires an existing own media message");
+        await this.client.editMessage(peer, { message: messageId, text: prepared.text, formattingEntities: prepared.entities, parseMode: false });
+        return { messageId, codepoints: prepared.codepoints, limit: prepared.limit };
+    }
+    async sendFile(chatId, filePath, caption, onProgress, asDocument, replyTo, topicId, parseMode) {
         if (!this.client || !this.connected)
             throw new Error(NOT_CONNECTED_ERROR);
         const client = this.client;
@@ -1359,7 +1423,11 @@ export class TelegramService {
         // создаст дубль; если оборвалась передача частей, повтор гигабайтного файла
         // внутри daemon идёт незаметно для клиента. Повтор разрешён только после
         // внешнего read-back/reconciliation.
+        // M20: only the opt-in formatted path depends on live app config.
+        const prepared = parseMode !== undefined ? await this.prepareMediaCaption(caption ?? "", parseMode) : { text: caption };
         const canonicalPath = realpathSync(filePath);
+        // Snapshot before SendMedia: a missing local source after acceptance must not hide messageId.
+        const fileSize = statSync(canonicalPath).size;
         const resolved = await this.resolvePeer(chatId);
         const inputPeer = await client.getInputEntity(resolved);
         const canonicalTarget = fisInputPeerKey(inputPeer);
@@ -1397,7 +1465,8 @@ export class TelegramService {
                 : undefined;
             const message = await client.sendFile(inputPeer, {
                 file: canonicalPath,
-                caption,
+                caption: prepared.text,
+                ...(parseMode ? { formattingEntities: prepared.entities } : {}),
                 // В форуме ответ на сообщение темы Telegram сам кладёт в ту же
                 // тему; topicId — прямое указание, когда отвечать не на что.
                 ...(replyTo ? { replyTo } : (topicId ? { replyTo: topicId } : {})),
@@ -1417,7 +1486,7 @@ export class TelegramService {
                 id: message.id,
                 messageId: message.id,
                 type: (video && !asDocument) ? "video" : "file",
-                size: statSync(canonicalPath).size,
+                size: fileSize,
                 ...(video ? { ...video, supportsStreaming: true } : {}),
             };
         }
@@ -2857,6 +2926,16 @@ export class TelegramService {
         }
         const results = await Promise.all(filtered.map(async (m, fisI, fisArr) => ({
             id: m.id,
+            // Telegram MCP Starter (M20b): bounded native identity for caption recovery diagnostics.
+            native: {
+                out: typeof m.out === "boolean" ? m.out : null,
+                peerId: fisCaptionPeerIdentity(m.peerId),
+                fromId: fisCaptionPeerIdentity(m.fromId),
+                hasDirectDocument: m.document instanceof Api.Document,
+                hasMediaDocument: m.media instanceof Api.MessageMediaDocument,
+                hasPhoto: m.media instanceof Api.MessageMediaPhoto,
+                documentId: (m.media?.document?.id ?? m.document?.id)?.toString() ?? null,
+            },
             ...(await this.fisRichFieldsFull(m, resolved, fisArr)),  // Telegram MCP Starter (R4)
             sender: await this.resolveSenderName(m.senderId, m.sender),
             date: new Date((m.date ?? 0) * 1000).toISOString(),

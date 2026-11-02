@@ -24,7 +24,7 @@ Upstream npm/npx или бинарник сами по себе не содер�
 
 ## Возможности и состав
 
-Базовый каталог содержит 180 инструментов; ещё 13 регистрируются только при включении opt-in групп `MCP_TELEGRAM_ENABLE_GROUP_CALLS=1`, `MCP_TELEGRAM_ENABLE_STARS=1` и `MCP_TELEGRAM_ENABLE_QUICK_REPLIES=1` (всего 193). Подробности и имена — [справочник инструментов](docs/TOOLS.md).
+Базовый каталог содержит 183 инструментов; ещё 13 регистрируются только при включении opt-in групп `MCP_TELEGRAM_ENABLE_GROUP_CALLS=1`, `MCP_TELEGRAM_ENABLE_STARS=1` и `MCP_TELEGRAM_ENABLE_QUICK_REPLIES=1` (всего 196). Подробности и имена — [справочник инструментов](docs/TOOLS.md).
 
 Сборка закрепляет `@overpod/mcp-telegram@1.43.1`, alias `telegram` → `teleproto@1.229.0` и Playwright 1.62.1; локальная версия Node должна быть 22+. Runtime включает 17 проверенных postimages: 13 upstream-файлов и 4 файла расширений. Версии и hash allowlist хранятся в [runtime manifest](runtime/manifest.json), описание границ — в [архитектуре](docs/ARCHITECTURE.md).
 

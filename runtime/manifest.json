@@ -13,7 +13,7 @@
       "path": "dist/telegram-client.js",
       "source": "upstream-postimage",
       "preimageSha256": "0f327c726a8b9030c63f3632be6b13529d5f64d5e1c2959744d5a93bca495ded",
-      "postimageSha256": "f9457e7596e3ede178f11eae4f255b3d5fcb94b4c13acb6d1da8e323705799bb"
+      "postimageSha256": "05d683063b78a94232af47eab266518cfe70bfd3871fe5607f1811698547c664"
     },
     {
       "path": "dist/telegram-helpers.js",
@@ -25,7 +25,7 @@
       "path": "dist/telegram-client.d.ts",
       "source": "upstream-postimage",
       "preimageSha256": "452287a02d5498e2c2f29d5e250ee29c6f4e08c2a77e3fc9849ffb68fae06a48",
-      "postimageSha256": "b90d7cc13f4733526cc3e9cf792626f6ac9f1328df844624f960a149304d37f4"
+      "postimageSha256": "776897d331b6a0357e5f5b1392dbed7605e14b6161ff45a2b18d8db56bc1c977"
     },
     {
       "path": "dist/master.js",
@@ -61,7 +61,7 @@
       "path": "dist/tools/media.js",
       "source": "upstream-postimage",
       "preimageSha256": "c7764685d3d63794e4eb1a940b32e3b6b3ed2009b955ae9f7ea52c154c1dfcaf",
-      "postimageSha256": "9502de9f3b9fb15da3d1d2491723490c4f22b80836a31c7e2e382242cb381694"
+      "postimageSha256": "750aa28d4149a25366adc3ca74a3b52940b28181a6ae770658381cc289078bf5"
     },
     {
       "path": "dist/tools/stickers.js",
@@ -110,6 +110,18 @@
       "source": "starter-extension",
       "preimageSha256": null,
       "postimageSha256": "fd46909de5e239a09e8499b63148044cd16824d5f022a1479a338c3f7dbca7c4"
+    },
+    {
+      "path": "dist/replace-message-media.js",
+      "source": "starter-extension",
+      "preimageSha256": null,
+      "postimageSha256": "a3c56846c453c39f5bb8962b30a8263bf4d46546fa59a573a43a8c8172326714"
+    },
+    {
+      "path": "dist/rate-limiter.js",
+      "source": "upstream-postimage",
+      "preimageSha256": "781d01f881ec92345cb53f46b781e96a80fd9a9b59b876b4b90aea94158e067c",
+      "postimageSha256": "c82355862de80ee2154bbe1de4dba5bf0ec7e23c2618ff379d38b38c545f1066"
     }
   ]
 }

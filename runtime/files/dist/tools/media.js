@@ -36,6 +36,8 @@ export function registerMediaTools(server, telegram) {
             chatId: z.string().describe("Chat ID or username"),
             filePath: z.string().describe("Absolute path to file"),
             caption: z.string().optional().describe("File caption"),
+            // Telegram MCP Starter (M20): classic caption entities in the same media message.
+            parseMode: z.enum(["html", "md"]).optional().describe("Caption markup; omitted means literal plain text"),
             // Telegram MCP Starter (M11): отправка документом (оригинал без пережатия)
             asDocument: z.boolean().optional().describe("Send as document (no Telegram re-encode)"),
             // Telegram MCP Starter (M13): ответ и тема форума для файла
@@ -43,19 +45,74 @@ export function registerMediaTools(server, telegram) {
             topicId: z.number().optional().describe("Forum topic ID to send the file into"),
         },
         annotations: WRITE,
-    }, async ({ chatId, filePath, caption, asDocument, replyTo, topicId }, extra) => {
+    }, async ({ chatId, filePath, caption, asDocument, replyTo, topicId, parseMode }, extra) => {
         const err = await requireConnection(telegram);
         if (err)
             return fail(new Error(err));
         try {
             // Telegram MCP Starter (M10): передаём прогресс долгой загрузки и возвращаем
             // messageId с проверенными метаданными вместо непроверяемого "sent".
-            const result = await telegram.sendFile(chatId, filePath, caption, extra?.sendProgress, asDocument, replyTo, topicId);
+            const result = await telegram.sendFile(chatId, filePath, caption, extra?.sendProgress, asDocument, replyTo, topicId, parseMode);
             return ok(JSON.stringify({ chatId, ...result }));
         }
         catch (e) {
             return fail(e);
         }
+    });
+    // Telegram MCP Starter (M20): preparation reads current account limits without sending anything.
+    server.registerTool("telegram-prepare-media-caption", {
+        description: "Parse a media caption and check the current account's live Telegram caption limit without sending. Returns text, entities with UTF-16 offsets, codepoint count and account limit.",
+        inputSchema: {
+            caption: z.string().describe("Complete caption"),
+            parseMode: z.enum(["html", "md"]).optional().describe("Markup; omitted means literal text"),
+        },
+        annotations: READ_ONLY,
+    }, async ({ caption, parseMode }) => {
+        const err = await requireConnection(telegram); if (err) return fail(new Error(err));
+        try {
+            const prepared = await telegram.prepareMediaCaption(caption, parseMode);
+            // Telegram MCP Starter (M20d): TL toJSON may retain original zero lengths after parsing.
+            // Return bounded DTOs from actual properties; keep Api entities inside send/edit.
+            const entities = prepared.entities.map(e => ({
+                className: e.className, offset: e.offset, length: e.length,
+                ...(e.url != null ? { url: e.url } : {}),
+                ...(e.documentId != null ? { documentId: e.documentId.toString() } : {}),
+            }));
+            return ok(JSON.stringify({ ...prepared, entities }));
+        }
+        catch (e) { return fail(e); }
+    });
+    // Telegram MCP Starter (M21): preview first; apply requires an exact owner/target baseline.
+    server.registerTool("telegram-replace-message-media", {
+        description: "Replace the video of ONE existing own message at the SAME message ID. dryRun defaults true: returns peer/document/caption baseline without upload. Apply requires all expected baseline fields. Omitted caption preserves exact native text/entities. No send/delete fallback and no automatic retry; reconcile the same ID on outcome_unknown.",
+        inputSchema: {
+            chatId: z.string(), messageId: z.number().int().positive(), filePath: z.string(),
+            expectedAccountId: z.string().regex(/^\d+$/),
+            dryRun: z.boolean().default(true),
+            expectedPeerKey: z.string().optional(),
+            expectedDocumentId: z.string().regex(/^\d+$/).optional(),
+            expectedCaptionSha256: z.string().regex(/^[a-f0-9]{64}$/).optional(),
+            expectedSourceSha256: z.string().regex(/^[a-f0-9]{64}$/).optional().describe("Exact source SHA-256 returned by dryRun; required for apply"),
+            caption: z.string().optional(), parseMode: z.enum(["html", "md"]).optional(),
+        }, annotations: WRITE,
+    }, async (args, extra) => {
+        const err = await requireConnection(telegram); if (err) return fail(new Error(err));
+        try { return ok(JSON.stringify(await telegram.replaceMessageMedia(args, extra?.sendProgress))); }
+        catch (e) { return fail(e); }
+    });
+    server.registerTool("telegram-edit-media-caption", {
+        description: "Edit only the caption of an existing outgoing photo/video/document. Supports classic bold and link entities, checks the live account limit, and never replaces/uploads the media. Read the same messageId back after editing.",
+        inputSchema: {
+            chatId: z.string().describe("Chat ID or username"),
+            messageId: z.number().int().positive().describe("Existing outgoing media message ID"),
+            caption: z.string().describe("Complete replacement caption; empty clears it"),
+            parseMode: z.enum(["html", "md"]).optional().describe("Markup; omitted means literal text"),
+        },
+        annotations: WRITE,
+    }, async ({ chatId, messageId, caption, parseMode }) => {
+        const err = await requireConnection(telegram); if (err) return fail(new Error(err));
+        try { return ok(JSON.stringify(await telegram.editMediaCaption(chatId, messageId, caption, parseMode))); }
+        catch (e) { return fail(e); }
     });
     server.registerTool("telegram-download-media", {
         // Telegram MCP Starter (M22): сервер может быть удалённым, его диск — не диск вызывающего.

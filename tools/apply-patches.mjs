@@ -29,12 +29,15 @@ const EXPECTED_PATHS = [
   'dist/miniapp-browser.js',
   'dist/tools/miniapps.js',
   'dist/tools/miniapp-ui.js',
+  'dist/replace-message-media.js',
+  'dist/rate-limiter.js',
 ];
 const EXPECTED_NEW_PATHS = new Set([
   'dist/miniapp-shim.js',
   'dist/miniapp-browser.js',
   'dist/tools/miniapps.js',
   'dist/tools/miniapp-ui.js',
+  'dist/replace-message-media.js',
 ]);
 
 function sha256(bytes) {
@@ -63,7 +66,7 @@ function assertManifest(manifest) {
     fail('runtime manifest does not describe the pinned MCP and teleproto versions');
   }
   if (!Array.isArray(manifest.files) || manifest.files.length !== EXPECTED_PATHS.length) {
-    fail('runtime manifest must contain the complete 17-file allowlist');
+    fail(`runtime manifest must contain the complete ${EXPECTED_PATHS.length}-file allowlist`);
   }
   const paths = new Set();
   for (const file of manifest.files) {

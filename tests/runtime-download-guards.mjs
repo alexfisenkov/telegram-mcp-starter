@@ -164,6 +164,12 @@ try {
   assert.equal(reply('e')?.result, 'sent', 'the read ceiling does not cut writes');
   delete process.env.TELEGRAM_READ_TOOL_CEILING_MS;
 
+  const { RateLimiter } = await import(pathToFileURL(resolve(packageDir, 'dist/rate-limiter.js')));
+  const flooding = (seconds) => { let calls = 0; return async () => { if (!calls++) throw Object.assign(new Error(`A wait of ${seconds} seconds is required`), { errorMessage: `FLOOD_WAIT_${seconds}`, seconds }); return 'ok'; }; };
+  assert.equal(await new RateLimiter().execute(flooding(1), 'probe'), 'ok', 'a short flood is waited out');
+  const longFlood = await settle(new RateLimiter().execute(flooding(900), 'probe'), 2000, 'a long flood');
+  assert.match(longFlood.error?.message ?? '', /^FLOOD_WAIT_900/);
+
   console.log('OK: download writer failure, stall watchdog, downloads folder, delivery reply, detached queue, read ceiling');
 } finally {
   rmSync(packageDir, { recursive: true, force: true });
