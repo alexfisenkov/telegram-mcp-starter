@@ -24,7 +24,7 @@ umask 077   # все создаваемые файлы (ключи, сессия
 
 PKG="@overpod/mcp-telegram"
 PKG_VERSION="1.43.1"
-SOURCE_VERSION="v2.0.0"
+SOURCE_VERSION="v2.1.0"
 SOURCE_REPOSITORY="alexfisenkov/telegram-mcp-starter"
 
 RUNTIME_ONLY=0
@@ -246,7 +246,7 @@ tar -xzf "$SOURCE_ARCHIVE" --strip-components=1 -C "$STAGED_SERVER"
   exit 1
 }
 SOURCE_PACKAGE_VERSION="$("$NODE_BIN" -p 'require(process.argv[1]).version' "$STAGED_SERVER/package.json")"
-[[ "$SOURCE_PACKAGE_VERSION" == "2.0.0" ]] || { err "Ожидалась версия исходников 2.0.0, получена $SOURCE_PACKAGE_VERSION."; exit 1; }
+[[ "$SOURCE_PACKAGE_VERSION" == "2.1.0" ]] || { err "Ожидалась версия исходников 2.1.0, получена $SOURCE_PACKAGE_VERSION."; exit 1; }
 TELEPROTO_OVERRIDE="$("$NODE_BIN" -e 'const p=require(process.argv[1]); process.stdout.write(p.overrides?.telegram || "")' "$STAGED_SERVER/package.json")"
 [[ "$TELEPROTO_OVERRIDE" == "npm:teleproto@1.229.0" ]] || { err "Исходники должны закреплять override telegram: npm:teleproto@1.229.0."; exit 1; }
 LOCKED_PACKAGE_VERSION="$("$NODE_BIN" -e 'const p=require(process.argv[1]); process.stdout.write(p.packages?.["node_modules/@overpod/mcp-telegram"]?.version || "")' "$STAGED_SERVER/package-lock.json")"

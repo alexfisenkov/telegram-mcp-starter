@@ -20,7 +20,7 @@ const clients=[];let stderr='';
 const watchdog=setTimeout(()=>{console.error('Concurrency check exceeded 60 seconds');process.exitCode=1;for(const c of clients)c.client.close().catch(()=>{});},60000);
 async function connect(label){
   const transport=new StdioClientTransport({command:process.execPath,args:[cli],cwd:sandbox,env,stderr:'pipe'});
-  const client=new Client({name:'public-ci-'+label,version:'2.0.0'});clients.push({client,transport});
+  const client=new Client({name:'public-ci-'+label,version:'2.1.0'});clients.push({client,transport});
   await client.connect(transport);
   if(transport.stderr)transport.stderr.on('data',b=>{stderr+=b.toString();});
   const result=await client.listTools();const names=result.tools.map(t=>t.name).sort();

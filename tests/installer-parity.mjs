@@ -14,7 +14,7 @@ const daemon = read("tools/daemon-setup.sh");
 
 for (const [name, installer] of [["install.sh", sh], ["install.ps1", ps]]) {
   assert.match(installer, /1\.43\.1/, `${name} pins the package version`);
-  assert.match(installer, /v2\.0\.0/, `${name} pins the public source release`);
+  assert.match(installer, /v2\.1\.0/, `${name} pins the public source release`);
   assert.match(installer, /ci[\s\S]*?--ignore-scripts/, `${name} installs the lockfile without postinstall`);
   assert.match(installer, /apply-patches\.mjs[\s\S]*?--package-dir/, `${name} applies the runtime manifest`);
   assert.match(installer, /apply-patches\.mjs[\s\S]*?--check/, `${name} verifies the runtime manifest`);
@@ -66,7 +66,7 @@ assert.doesNotMatch(daemonPs, /daemon\.vbs[\s\S]*?Encoding Ascii/);
 assert.match(read("tests/installer-vbs-encoding.mjs"), /UTF-16LE BOM/);
 assert.match(doctor, /tools\.tools\.length < minimumTools/);
 assert.match(doctor, /telegram-status подтвердил авторизованное подключение/);
-assert.equal(packageJson.version, "2.0.0");
+assert.equal(packageJson.version, "2.1.0");
 assert.equal(packageJson.dependencies["@overpod/mcp-telegram"], "1.43.1");
 assert.equal(packageJson.overrides.telegram, "npm:teleproto@1.229.0");
 assert.equal(lock.packages["node_modules/@overpod/mcp-telegram"].version, "1.43.1");
