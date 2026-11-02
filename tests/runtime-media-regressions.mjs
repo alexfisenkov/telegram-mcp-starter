@@ -6,6 +6,12 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { applyPatches } from '../tools/apply-patches.mjs';
 
+// The regressions fake ffprobe with a shebang script, which Windows cannot execute.
+if (process.platform === 'win32') {
+  console.log('SKIP on Windows: the ffprobe stand-in in these regressions is POSIX-only');
+  process.exit(0);
+}
+
 const here = dirname(fileURLToPath(import.meta.url));
 const upstreamPackageDir = resolve(process.env.TELEGRAM_MCP_RUNTIME_PACKAGE_DIR ?? 'node_modules/@overpod/mcp-telegram');
 const packageDir = join(dirname(upstreamPackageDir), `.telegram-mcp-starter-media-${randomUUID()}`);
