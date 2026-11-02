@@ -4,7 +4,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { GlobalLock } from "./global-lock.js";
 import { encodeMessage, parseMessages, } from "./ipc-protocol.js";
 import { releaseLock, releaseSocket, socketPath } from "./lock.js";
-import { TelegramService } from "./telegram-client.js";
+import { fisStartDownloadsPrune, TelegramService } from "./telegram-client.js";
 import { registerTools } from "./tools/index.js";
 // Prefix diagnostics with the owner PID so concurrent client processes
 // can be distinguished when investigating connection ownership.
@@ -48,6 +48,9 @@ let activeLogin = null;
 // эксклюзивно (под globalLock) выполняются только смены состояния сессии — логин и логаут;
 // read-only и download-инструменты идут параллельно, лишь дожидаясь конца логина.
 const EXCLUSIVE_TOOLS = new Set(["telegram-login", "telegram-logout"]);
+// Telegram MCP Starter (M22): идут мимо очереди сокета, не больше четырёх одновременно на клиента.
+const FIS_DETACHED_TOOLS = new Set(["telegram-download-media"]);
+const FIS_DETACHED_MAX = 4;
 let exclusiveGate = null;
 async function runExclusive(fn) {
     const unlock = await globalLock.acquire();
@@ -102,7 +105,8 @@ function withTimeout(promise, ms, label, hooks) {
         // Telegram MCP Starter (M8): hooks.rearm перезаводит потолок на каждом прогрессе.
         const arm = () => {
             clearTimeout(timer);
-            timer = setTimeout(() => reject(new Error(`Tool call timed out after ${ms}ms: ${label}`)), ms);
+            // Telegram MCP Starter (M22): слово timeout обязательно: без него докачка спишет файл как утраченный.
+            timer = setTimeout(() => reject(new Error(`Tool call timed out after ${ms}ms (timeout): ${label}`)), ms);
             timer.unref?.();
         };
         arm();
@@ -124,8 +128,23 @@ export function handleClient(socket, mcpServer, telegram, opts = {}) {
     const queue = [];
     // Per-socket FIFO: messages from one client execute in arrival order.
     // Telegram MCP Starter (A6): разные сокеты теперь работают ПАРАЛЛЕЛЬНО — общий лок держат
-    // только login/logout/QR. Внутри одного сокета порядок по-прежнему строгий, поэтому
-    // долгая докачка задерживает следующие вызовы того же клиента (но не других).
+    // только login/logout/QR. Внутри одного сокета порядок по-прежнему строгий.
+    // Telegram MCP Starter (M22): скачивание из очереди вынесено. Одно зависшее скачивание держало
+    // все следующие вызовы своего клиента: сессия агента молчала, хотя демон был здоров.
+    // Порядок результату не важен: клиент разбирает ответы по id, а скачивание ничего не меняет.
+    let fisDetached = 0;
+    const fisWaiting = [];  // сверх FIS_DETACHED_MAX ждут здесь, а не в очереди сокета
+    function fisRunDetached(msg) {
+        fisDetached++;
+        handleToolRequest(socket, msg, mcpServer, telegram, toolCallTimeoutMs)
+            .catch((e) => console.error(`[mcp-telegram] ${msg.tool}: ${e?.message ?? e}`))
+            .finally(() => {
+            fisDetached--;
+            const next = fisWaiting.shift();
+            if (next && !socket.destroyed)
+                fisRunDetached(next);
+        });
+    }
     async function drainQueue() {
         if (processing)
             return;
@@ -149,6 +168,13 @@ export function handleClient(socket, mcpServer, telegram, opts = {}) {
             if (!msg)
                 break;
             if (msg.type === "tool") {
+                if (FIS_DETACHED_TOOLS.has(msg.tool)) {
+                    if (fisDetached < FIS_DETACHED_MAX)
+                        fisRunDetached(msg);
+                    else
+                        fisWaiting.push(msg);
+                    continue;
+                }
                 await handleToolRequest(socket, msg, mcpServer, telegram, toolCallTimeoutMs);
             }
             else if (msg.type === "login_start") {
@@ -169,10 +195,13 @@ export function handleClient(socket, mcpServer, telegram, opts = {}) {
             // дал бы второе сообщение. Начатый вызов отменить нельзя — только не начинать.
             if (msg.type === "tool_cancel") {
                 const i = queue.findIndex((m) => m.type === "tool" && m.id === msg.id);
-                if (i >= 0) {
+                const w = fisWaiting.findIndex((m) => m.id === msg.id);  // Telegram MCP Starter (M22)
+                if (i >= 0)
                     queue.splice(i, 1);
+                else if (w >= 0)
+                    fisWaiting.splice(w, 1);
+                if (i >= 0 || w >= 0)
                     send(socket, { type: "tool_response", id: msg.id, error: "Вызов отменён клиентом до начала исполнения" });
-                }
                 continue;
             }
             queue.push(msg);
@@ -231,7 +260,13 @@ async function handleToolRequest(socket, req, mcpServer, telegram, timeoutMs = T
             }
             else {
                 await waitForExclusive();
-                response.result = await withTimeout(tool.handler(req.args ?? {}, fisExtra), timeoutMs, req.tool, fisTimer);
+                // Telegram MCP Starter (M22): час нужен заливкам. Вызов только на чтение без признаков
+                // жизни 240 с (TELEGRAM_READ_TOOL_CEILING_MS) получает ошибку раньше, чем клиент
+                // MCP бросит ждать, и не держит очередь сокета. Прогресс этот потолок продлевает.
+                const fisCeiling = tool.annotations?.readOnlyHint === true
+                    ? Math.min(timeoutMs, fisEnvMs("TELEGRAM_READ_TOOL_CEILING_MS", 240_000))
+                    : timeoutMs;
+                response.result = await withTimeout(tool.handler(req.args ?? {}, fisExtra), fisCeiling, req.tool, fisTimer);
             }
         }
         catch (err) {
@@ -287,6 +322,7 @@ export async function startOwner(telegram, version, opts = {}) {
     const server = new McpServer({ name: "mcp-telegram", version });
     registerTools(server, telegram);
     const mcpServer = server;
+    fisStartDownloadsPrune();  // Telegram MCP Starter (M22)
     // Remove a stale socket file from a previous crash before attempting to listen.
     releaseSocket();
     // Telegram MCP Starter (A2): гейт готовности ставим ДО listen(). Авто-коннект переехал сюда

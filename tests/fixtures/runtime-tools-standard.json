@@ -764,7 +764,7 @@
             "type": "string"
           },
           "downloadPath": {
-            "description": "Absolute path to save file",
+            "description": "Absolute path on the MCP server machine, its directory must exist. Omit to use the server's downloads folder.",
             "type": "string"
           },
           "messageId": {
@@ -776,12 +776,15 @@
             "maximum": 9007199254740991,
             "minimum": 0,
             "type": "integer"
+          },
+          "inline": {
+            "type": "boolean",
+            "description": "Also return the image inside the reply (jpg, png, webp, gif up to 3.5 MB)"
           }
         },
         "required": [
           "chatId",
-          "messageId",
-          "downloadPath"
+          "messageId"
         ],
         "type": "object"
       },

@@ -1,5 +1,34 @@
 import { z } from "zod";
+import { readFileSync, statSync } from "node:fs";  // Telegram MCP Starter (M22)
+import { hostname } from "node:os";
+import { basename } from "node:path";
 import { fail, ok, READ_ONLY, requireConnection, sanitize, WRITE } from "./shared.js";
+// Telegram MCP Starter (M22): 3,5 МБ дают в base64 меньше 5 МБ, это предел картинки в ответе модели.
+const FIS_INLINE_MAX_BYTES = 3.5 * 1024 * 1024;
+// Telegram MCP Starter (M22): автоматические клиенты считают незнакомый текст утратой файла и списывают
+// его навсегда. Тексты teleproto о связи и флуде этих слов не содержат, поэтому переводим их здесь,
+// на единственном выходе инструмента. Постоянные ошибки («has no media», «not found») не трогаем.
+function fisDownloadFailure(e) {
+    const text = e instanceof Error ? e.message : String(e);
+    const seconds = e?.seconds ?? /^Please wait (\d+) seconds/.exec(text)?.[1];
+    if (seconds !== undefined && !text.includes("FLOOD_WAIT"))
+        return new Error(`FLOOD_WAIT_${seconds}: ${text}`);
+    if (e?.errorMessage === "TIMEOUT" || /sender slot removed|while disconnected|Cannot read properties of null/i.test(text))
+        return new Error(`Скачивание оборвалось: ${text}, connection не отвечает. Неполный файл удалён, вызов можно повторить.`);
+    return e;
+}
+// Тип по содержимому: расширение документа в Telegram ничего не гарантирует.
+function fisImageMime(b) {
+    if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff)
+        return "image/jpeg";
+    if (b.subarray(0, 4).toString("latin1") === "\x89PNG")
+        return "image/png";
+    if (b.subarray(0, 3).toString("latin1") === "GIF")
+        return "image/gif";
+    if (b.subarray(0, 4).toString("latin1") === "RIFF" && b.subarray(8, 12).toString("latin1") === "WEBP")
+        return "image/webp";
+    return undefined;
+}
 export function registerMediaTools(server, telegram) {
     server.registerTool("telegram-send-file", {
         description: "Send a file (photo, document, video, etc.) to a Telegram chat",
@@ -29,26 +58,46 @@ export function registerMediaTools(server, telegram) {
         }
     });
     server.registerTool("telegram-download-media", {
-        description: "Download media from a Telegram message to a local file",
+        // Telegram MCP Starter (M22): сервер может быть удалённым, его диск — не диск вызывающего.
+        description: "Download media from a Telegram message to a file on the machine where this MCP server runs. A remote server cannot write to the caller's disk: omit downloadPath and the file is saved in the server's downloads folder for 3 days, and the reply gives its path and a command to fetch it. Set inline=true to also get an image right in the reply.",
         inputSchema: {
             chatId: z.string().describe("Chat ID or username"),
             messageId: z.number().describe("Message ID containing media"),
-            downloadPath: z.string().describe("Absolute path to save file"),
+            downloadPath: z.string().optional().describe("Absolute path on the MCP server machine, its directory must exist. Omit to use the server's downloads folder."),
             // Telegram MCP Starter (R5): медиа внутри Rich-блоков (вне message.media)
             richIndex: z.number().int().min(0).optional().describe("Rich message media: 0-based index over richMedia.photos then richMedia.documents (the i in [rich-медиа i …]). Omit for ordinary media."),
+            // Telegram MCP Starter (M22)
+            inline: z.boolean().optional().describe("Also return the image inside the reply (jpg, png, webp, gif up to 3.5 MB)"),
         },
         annotations: READ_ONLY,
-    }, async ({ chatId, messageId, downloadPath, richIndex }, extra) => {
+    }, async ({ chatId, messageId, downloadPath, richIndex, inline }, extra) => {
         const err = await requireConnection(telegram);
         if (err)
             return fail(new Error(err));
         try {
             // Telegram MCP Starter (M8): прогресс скачивания уходит клиенту
             const path = await telegram.downloadMedia(chatId, messageId, downloadPath, extra?.sendProgress, richIndex);
-            return ok(`Media downloaded to ${path}`);
+            // Telegram MCP Starter (M22): первая строка неизменна, её разбирают докачка и бот.
+            const lines = [`Media downloaded to ${path}`];
+            if (!downloadPath) {
+                const host = hostname();
+                lines.push(`Размер: ${statSync(path).size} байт. Файл лежит на машине ${host} и хранится 3 суток.`);
+                lines.push(`Забрать на свою машину: ssh ${host} "cat '${path}'" > '${basename(path)}'`);
+            }
+            if (inline && statSync(path).size > FIS_INLINE_MAX_BYTES) {
+                lines.push("В ответ не вложено: файл больше 3,5 МБ.");
+            }
+            else if (inline) {
+                const bytes = readFileSync(path);
+                const mimeType = fisImageMime(bytes);
+                if (mimeType)
+                    return { content: [{ type: "text", text: lines.join("\n") }, { type: "image", data: bytes.toString("base64"), mimeType }] };
+                lines.push("В ответ не вложено: это не jpg, png, webp или gif.");
+            }
+            return ok(lines.join("\n"));
         }
         catch (e) {
-            return fail(e);
+            return fail(fisDownloadFailure(e));
         }
     });
     server.registerTool("telegram-get-profile-photo", {

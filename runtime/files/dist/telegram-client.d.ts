@@ -185,7 +185,7 @@ export declare class TelegramService {
     }): Promise<{
         ids: number[];
     }>;
-    downloadMedia(chatId: string, messageId: number, downloadPath: string): Promise<string>;
+    downloadMedia(chatId: string, messageId: number, downloadPath?: string): Promise<string>;
     /**
      * Download a message's media into memory.
      *

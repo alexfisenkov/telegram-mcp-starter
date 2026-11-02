@@ -22,6 +22,8 @@
 ## Медиа и файлы
 `telegram-send-file`, `telegram-send-album` (2–10 фото/видео), `telegram-download-media`, `telegram-get-profile-photo`, `telegram-get-web-preview`
 
+`telegram-download-media` пишет файл на машину, где работает MCP-сервер. Без `downloadPath` файл ложится в папку скачиваний рядом с сессией и хранится трое суток, а ответ подсказывает, как его забрать. С `inline: true` картинка до 3,5 МБ приходит прямо в ответе.
+
 ## Голос и видео
 `telegram-send-voice` (голосовое), `telegram-send-video-note` (кружок), `telegram-transcribe-audio` *(Premium)* — расшифровка голосовых, `telegram-get-transcription`, `telegram-rate-transcription`
 

@@ -1,10 +1,10 @@
 import { randomBytes } from "node:crypto";  // Telegram MCP Starter M9-fix-2: уникальное имя обрывка .part
-import { createWriteStream, existsSync, mkdirSync, readFileSync, writeFileSync, renameSync, statSync, unlinkSync, realpathSync } from "node:fs";  // Telegram MCP Starter R3: чтение/запись кэша имён; statSync — Telegram MCP Starter M7, проверка непустого файла после потокового скачивания; realpathSync — M10 dedup upload
+import { createWriteStream, existsSync, mkdirSync, readdirSync, readFileSync, utimesSync, writeFileSync, renameSync, statSync, unlinkSync, realpathSync } from "node:fs";  // Telegram MCP Starter R3: чтение/запись кэша имён; statSync — Telegram MCP Starter M7, проверка непустого файла после потокового скачивания; realpathSync — M10 dedup upload; readdirSync — M22, чистка папки скачиваний
 import { chmod, readFile, stat, unlink, writeFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";  // Telegram MCP Starter (A11): MTProtoSender teleproto для печати
-import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { homedir, hostname } from "node:os";  // Telegram MCP Starter (M22): hostname — чья это машина, в тексте ошибки
+import { dirname, extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { fisTeleproto } from "./telegram-helpers.js";  // Telegram MCP Starter (R4b): загрузчик teleproto один на пакет
 import bigInt from "big-integer";
@@ -19,6 +19,84 @@ import { getInputUser } from "telegram/Utils.js";
 import { RateLimiter } from "./rate-limiter.js";
 import { buildReplyTo, buildStoryPrivacyRules, describeAdminLogAction, describeAdminLogDetails, describeKeyboardButton, detectMediaType, extractDiceResult, extractMessageId, extractPeerId, extractPollMediaFromUpdates, extractStoryIdFromUpdates, generateRandomBigInt, mergeBannedRights, reactionToEmoji, summarizeAllStories, summarizeBoostsList, summarizeBoostsStatus, summarizeBroadcastStats, summarizeBusinessChatLink, summarizeBusinessChatLinks, summarizeChannelDifference, summarizeDiscussionMessage, summarizeEmojiStatus, summarizeGroupCall, summarizeGroupCallParticipants, summarizeGroupsForDiscussion, summarizeMegagroupStats, summarizeMyBoosts, summarizePeer, summarizePeerStories, summarizePoll, summarizeQuickReplies, summarizeQuickReplyMessages, summarizeReadParticipants, summarizeReportResult, summarizeSavedMusic, summarizeStarsStatus, summarizeStoriesById, summarizeStoryViewsList, summarizeUpdatesDifference, } from "./telegram-helpers.js";
 import { GetSavedMusicRequest } from "./tl/saved-music.js";
+// Telegram MCP Starter (M22): сколько ждать очередной кусок файла (TELEGRAM_DOWNLOAD_STALL_MS, 120 с).
+// Меньше потолка чтения в master.js, поэтому .part успевает удалиться здесь.
+function fisDownloadStallMs() {
+    const n = Number(process.env.TELEGRAM_DOWNLOAD_STALL_MS);
+    return Number.isFinite(n) && n > 0 ? n : 120_000;
+}
+// Telegram MCP Starter (M22): папка скачиваний по умолчанию живёт рядом с сессией и только с правами
+// владельца. Файлы tg-* старше трёх суток удаляются: это копии, оригинал остаётся в Telegram.
+const FIS_DOWNLOADS_KEEP_MS = 3 * 24 * 3600_000;
+const FIS_DOWNLOADS_MAX_BYTES = 20 * 1024 ** 3;
+function fisDownloadsPath() {
+    const state = process.env.TELEGRAM_SESSION_PATH ? dirname(process.env.TELEGRAM_SESSION_PATH) : join(homedir(), ".mcp-telegram");
+    return process.env.TELEGRAM_DOWNLOADS_DIR || join(state, "media", "downloads");
+}
+// Возвращает сумму размеров оставшихся файлов tg-*.
+function fisPruneDownloads() {
+    const dir = fisDownloadsPath();
+    let used = 0;
+    let names = [];
+    try { names = readdirSync(dir); } catch { return 0; }
+    for (const name of names) {
+        if (!name.startsWith("tg-"))
+            continue;
+        try {
+            const path = join(dir, name);
+            const info = statSync(path);
+            if (Date.now() - info.mtimeMs > FIS_DOWNLOADS_KEEP_MS)
+                unlinkSync(path);
+            else
+                used += info.size;
+        }
+        catch { }
+    }
+    return used;
+}
+// Telegram MCP Starter (M22): чистка живёт и без новых скачиваний, иначе обещание «трое суток» ложно.
+export function fisStartDownloadsPrune() {
+    fisPruneDownloads();
+    setInterval(fisPruneDownloads, 6 * 3600_000).unref();
+}
+function fisCheckDownloadsRoom(expectedBytes) {
+    if (fisPruneDownloads() + (expectedBytes ?? 0) > FIS_DOWNLOADS_MAX_BYTES)
+        throw new Error(`Failed to download media: папка скачиваний ${fisDownloadsPath()} заполнена (предел 20 ГБ). Это локальная запись, а не connection к Telegram. Файлы старше трёх суток удаляются сами, остальные можно забрать и удалить.`);
+}
+// Telegram MCP Starter (M22): в службах systemd с PrivateTmp /tmp виден только самому демону.
+// Запись туда удалась бы, но файл не забрать никому, а на машине вызывающего может лежать
+// старый файл с тем же именем: агент прочитал бы его как только что скачанный.
+export function fisPrivateTmpPath(path, mountinfo) {
+    return /^\/(?:var\/)?tmp(?:\/|$)/.test(resolve(path)) && mountinfo.includes("/systemd-private-");
+}
+function fisMountinfo() {
+    try { return readFileSync("/proc/self/mountinfo", "utf8"); } catch { return ""; }
+}
+// Telegram MCP Starter (M22): планировщик teleproto пережидает FLOOD_WAIT молча, это не зависание.
+// Сколько мс ему ещё ждать; ожидание дольше предела отдаём вызывающему словами.
+const FIS_MEDIA_FLOOD_MAX_MS = 600_000;
+function fisMediaFloodLeftMs(client) {
+    const balances = client?._media?._balances?.values?.();
+    return balances ? Math.max(0, ...[...balances].map((b) => b.floodWaitUntil - Date.now())) : 0;
+}
+function fisDownloadExtension(target, doc) {
+    if (!doc)
+        return target?.photo || target?.className === "Photo" ? ".jpg" : ".bin";
+    const named = (doc.attributes ?? []).find((a) => a?.fileName)?.fileName;
+    const fromName = named ? extname(String(named)).toLowerCase() : "";
+    if (/^\.[a-z0-9]{1,8}$/.test(fromName))
+        return fromName;
+    const subtype = String(doc.mimeType ?? "").split("/")[1] ?? "";
+    const known = { jpeg: "jpg", quicktime: "mov", mpeg: "mp3", "x-matroska": "mkv" }[subtype] ?? subtype;
+    return /^[a-z0-9]{1,8}$/.test(known) ? `.${known}` : ".bin";
+}
+function fisDefaultDownloadPath(chatId, messageId, richIndex, target, doc) {
+    const chat = String(chatId).replace(/[^A-Za-z0-9_-]/g, "_");
+    const rich = richIndex === undefined || richIndex === null ? "" : `-r${richIndex}`;
+    const dir = fisDownloadsPath();
+    mkdirSync(dir, { recursive: true, mode: 0o700 });
+    return join(dir, `tg-${chat}-${messageId}${rich}${fisDownloadExtension(target, doc)}`);
+}
 export { buildStoryPrivacyRules, describeAdminLogAction, describeAdminLogDetails, describeKeyboardButton, detectMediaType, extractPeerId, extractPollMediaFromUpdates, extractStoryIdFromUpdates, mergeBannedRights, peerToCompact, reactionToEmoji, summarizeAllStories, summarizeBoost, summarizeBoostsList, summarizeBoostsStatus, summarizeBroadcastStats, summarizeBusinessChatLink, summarizeBusinessChatLinks, summarizeChannelDifference, summarizeDiscussionMessage, summarizeEmojiStatus, summarizeGroupCall, summarizeGroupCallInfo, summarizeGroupCallParticipant, summarizeGroupCallParticipants, summarizeGroupsForDiscussion, summarizeMegagroupStats, summarizeMyBoost, summarizeMyBoosts, summarizePeer, summarizePeerStories, summarizePoll, summarizePrepaidGiveaway, summarizeQuickReplies, summarizeQuickReply, summarizeQuickReplyMessage, summarizeQuickReplyMessages, summarizeReadParticipants, summarizeReportResult, summarizeSavedMusic, summarizeStarsAmount, summarizeStarsStatus, summarizeStarsSubscription, summarizeStarsTransaction, summarizeStarsTransactionPeer, summarizeStoriesById, summarizeStoryItem, summarizeStoryView, summarizeStoryViewsList, summarizeUpdatesDifference, } from "./telegram-helpers.js";
 // Telegram MCP Starter (R4b): транспорт как у gramJS 2.26.22. gramJS в Node при useWSS ходил
 // обычным TCP (PromisedNetSockets) к IP DC, меняя только порт главного DC: useWSS ? 443 : 80
@@ -1579,20 +1657,46 @@ export class TelegramService {
             const n = Number(typeof raw === "object" ? raw.toString() : raw);
             return Number.isFinite(n) && n > 0 ? n : null;
         })();
+        // Telegram MCP Starter (M22): путь не задан — файл ляжет в папку скачиваний на машине
+        // MCP-сервера. Удалённый вызывающий не может назвать путь на своём диске.
+        const fisExplicitPath = Boolean(downloadPath);
+        if (fisExplicitPath && fisPrivateTmpPath(downloadPath, fisMountinfo())) {
+            const fisTmpError = new Error(`Failed to download media: ${downloadPath} — приватный /tmp службы на машине ${hostname()}, файл оттуда не забрать. Это локальная запись, а не connection к Telegram: сообщение цело. Вызови инструмент без downloadPath: файл ляжет на сервер, а в ответе будут его путь и команда, чтобы забрать его.`);
+            fisTmpError.code = "EACCES";
+            throw fisTmpError;
+        }
+        if (!fisExplicitPath) {
+            downloadPath = fisDefaultDownloadPath(chatId, messageId, richIndex, fisTarget, fisSizeDoc);
+            // Клиент мог бросить долгий вызов, а файл докачался: повтор отдаёт его сразу,
+            // и срок хранения считается заново.
+            if (fisExpectedSize !== null && existsSync(downloadPath) && statSync(downloadPath).size === fisExpectedSize) {
+                const fisNow = new Date();
+                utimesSync(downloadPath, fisNow, fisNow);
+                return downloadPath;
+            }
+            fisCheckDownloadsRoom(fisExpectedSize);
+        }
         // Telegram MCP Starter (M8): прогресс наверх, но не чаще раза в секунду — gramJS
         // дёргает колбэк на каждый кусок, а каждый вызов уходит сообщением по IPC.
         let fisLastProgressAt = 0;
-        const fisProgress = typeof onProgress === "function"
-            ? (received, total) => {
-                const now = Date.now();
-                if (now - fisLastProgressAt < 1000)
-                    return;
-                fisLastProgressAt = now;
-                const r = Number(typeof received === "object" ? received.toString() : received);
-                const t = total != null ? Number(typeof total === "object" ? total.toString() : total) : undefined;
-                onProgress(Number.isFinite(r) ? r : 0, Number.isFinite(t) ? t : undefined);
-            }
-            : undefined;
+        // Telegram MCP Starter (M22): колбэк есть всегда — каждый кусок ещё и взводит сторож зависания.
+        let fisRearmStall = () => { };
+        let fisLastReceived = 0;
+        let fisLastTotal;
+        const fisProgress = (received, total) => {
+            fisRearmStall();
+            const r = Number(typeof received === "object" ? received.toString() : received);
+            const t = total != null ? Number(typeof total === "object" ? total.toString() : total) : undefined;
+            fisLastReceived = Number.isFinite(r) ? r : 0;
+            fisLastTotal = Number.isFinite(t) ? t : undefined;
+            if (typeof onProgress !== "function")
+                return;
+            const now = Date.now();
+            if (now - fisLastProgressAt < 1000)
+                return;
+            fisLastProgressAt = now;
+            onProgress(fisLastReceived, fisLastTotal);
+        };
         // Retry incomplete media transfers after the writer has closed. A write()
         // return value is not a promise: own the stream and await close before
         // checking size or publishing the final name.
@@ -1621,16 +1725,59 @@ export class TelegramService {
             fisWriter.on("error", (e) => { fisStreamError = e; });
             let result = null;
             fisLastError = null;
+            // Telegram MCP Starter (M22, 02.11.2026): поток, умерший при записи, вешал вызов навсегда.
+            // closeWriter в teleproto ждёт событие close, а у потока с ошибкой оно уже было:
+            // путь с другой машины (ENOENT), диск полон (ENOSPC). Ошибка потока теперь сразу завершает
+            // ожидание, а сторож ловит и молчащий транспорт: нет новых кусков — честная ошибка.
+            const fisAbort = new AbortController();
+            const fisStallMs = fisDownloadStallMs();
+            let fisStallTimer;
+            let fisStalled = false;
+            const fisWatch = new Promise((_, reject) => {
+                fisWriter.once("error", reject);
+                fisRearmStall = () => {
+                    clearTimeout(fisStallTimer);
+                    fisStallTimer = setTimeout(() => {
+                        // Короткий флуд пережидаем, как и раньше: повтор начал бы файл с нуля.
+                        // Прогресс тут признак жизни для потолка вызова в master.js.
+                        const fisFloodLeft = fisMediaFloodLeftMs(this.client);
+                        if (fisFloodLeft > 0 && fisFloodLeft <= FIS_MEDIA_FLOOD_MAX_MS) {
+                            if (typeof onProgress === "function")
+                                onProgress(fisLastReceived, fisLastTotal);
+                            fisRearmStall();
+                            return;
+                        }
+                        fisStalled = true;
+                        if (fisFloodLeft > 0) {
+                            reject(new Error(`FLOOD_WAIT_${Math.ceil(fisFloodLeft / 1000)}: Telegram просит подождать (сообщение ${messageId}). Неполный файл удалён, вызов можно повторить позже.`));
+                            return;
+                        }
+                        // Слова «оборвалось» и «connection» обязательны: автоматические клиенты
+                        // считают незнакомый текст утратой файла и списывают его навсегда.
+                        reject(new Error(`Скачивание оборвалось: ${Math.round(fisStallMs / 1000)} с без новых данных (сообщение ${messageId}), connection молчит. Неполный файл удалён, вызов можно повторить.`));
+                    }, fisStallMs);
+                    fisStallTimer.unref?.();
+                };
+            });
+            fisRearmStall();
             try {
-                result = await this.client.downloadMedia(fisTarget, {  // Telegram MCP Starter (R5)
+                await Promise.race([new Promise((resolve) => fisWriter.once("open", resolve)), fisWatch]);
+                const fisDownload = this.client.downloadMedia(fisTarget, {  // Telegram MCP Starter (R5)
                     outputFile: fisWriter,
-                    ...(fisProgress ? { progressCallback: fisProgress } : {}),
+                    progressCallback: fisProgress,
+                    signal: fisAbort.signal,
                 });
+                // Проигравший гонку не должен всплыть необработанным отклонением.
+                Promise.resolve(fisDownload).catch(() => { });
+                result = await Promise.race([fisDownload, fisWatch]);
             }
             catch (e) {
                 fisLastError = e;
             }
             finally {
+                clearTimeout(fisStallTimer);
+                fisRearmStall = () => { };
+                fisAbort.abort();
                 // gramJS закрывает поток сам, но на раннем выходе может и не
                 // дойти до close — тогда закрываем мы. Ждём в любом случае.
                 if (!fisWriter.writableEnded && !fisWriter.destroyed)
@@ -1641,7 +1788,19 @@ export class TelegramService {
                 // Локальный сбой записи (ENOSPC, EACCES…) повтором не лечится:
                 // текст с кодом ошибки докачка узнаёт и не списывает файл.
                 try { unlinkSync(fisPart); } catch { }
-                throw fisStreamError;
+                // «Failed to download media» и «connection» держат файл вне списания у автоматических клиентов.
+                const fisHint = fisExplicitPath && ["ENOENT", "ENOTDIR", "EROFS", "EACCES", "EPERM"].includes(fisStreamError.code)
+                    ? " Сервер не видит диск вызывающего. Вызови инструмент без downloadPath: файл ляжет на сервер, а в ответе будут его путь и команда, чтобы забрать его."
+                    : fisStreamError.code === "ENOSPC" ? " На диске сервера нет места." : "";
+                const fisWriteError = new Error(`Failed to download media: не могу записать файл на машине MCP-сервера (${hostname()}): ${fisStreamError.message}. Это локальная запись, а не connection к Telegram: сообщение цело.${fisHint}`);
+                fisWriteError.code = fisStreamError.code;
+                throw fisWriteError;
+            }
+            if (fisStalled) {
+                // Повтор здесь не поможет: молчит транспорт, а не кусок файла.
+                try { unlinkSync(fisPart); } catch { }
+                this.markUnhealthy(`download stalled: message ${messageId}`);
+                throw fisLastError;
             }
             fisLastSize = existsSync(fisPart) ? statSync(fisPart).size : 0;
             const fisComplete = !fisLastError && result && fisLastSize > 0
