@@ -1,6 +1,6 @@
 {
   "name": "telegram-mcp-starter",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "private": true,
   "description": "Pinned runtime dependencies for Telegram MCP Starter",
   "dependencies": {

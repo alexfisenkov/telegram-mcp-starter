@@ -13,13 +13,13 @@
       "path": "dist/telegram-client.js",
       "source": "upstream-postimage",
       "preimageSha256": "0f327c726a8b9030c63f3632be6b13529d5f64d5e1c2959744d5a93bca495ded",
-      "postimageSha256": "05d683063b78a94232af47eab266518cfe70bfd3871fe5607f1811698547c664"
+      "postimageSha256": "7c18b09674613dc29e2c281c7e352156aa4c8b3e4da846c690755c67737737e4"
     },
     {
       "path": "dist/telegram-helpers.js",
       "source": "upstream-postimage",
       "preimageSha256": "57817cb62d968c845b6df423bb67520e9223ac48e25bac9e95205deba48c1636",
-      "postimageSha256": "7cbac51d378a84efff27c89d1e22835bb65ba3c62fac2c102459996aaf7662ea"
+      "postimageSha256": "25d33d704b1403b3695cb77c46d370528eb4cb85e47867c900154dbf66ee2f24"
     },
     {
       "path": "dist/telegram-client.d.ts",

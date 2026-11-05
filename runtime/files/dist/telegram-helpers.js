@@ -371,56 +371,100 @@ export function mergeBannedRights(current, permissions) {
     }
     return result;
 }
+// Telegram MCP Starter: layer-229 nested types and legacy GramJS share one keyboard projection.
+const KEYBOARD_BUTTON_TYPES = Object.freeze({
+    InlineButtonTypeCallback: "KeyboardButtonCallback",
+    InlineButtonTypeUrl: "KeyboardButtonUrl",
+    InlineButtonTypeUrlAuth: "KeyboardButtonUrlAuth",
+    InlineButtonTypeSwitchInline: "KeyboardButtonSwitchInline",
+    InlineButtonTypeWebView: "KeyboardButtonWebView",
+    InlineButtonTypeUserProfile: "KeyboardButtonUserProfile",
+    InlineButtonTypeCopy: "KeyboardButtonCopy",
+    InlineButtonTypeGame: "KeyboardButtonGame",
+    InlineButtonTypeBuy: "KeyboardButtonBuy",
+    InlineButtonTypeDisabled: "KeyboardButtonDisabled",
+    ButtonTypeDefault: "KeyboardButton",
+    ButtonTypeRequestPhone: "KeyboardButtonRequestPhone",
+    ButtonTypeRequestGeoLocation: "KeyboardButtonRequestGeoLocation",
+    ButtonTypeRequestPoll: "KeyboardButtonRequestPoll",
+    ButtonTypeRequestPeer: "KeyboardButtonRequestPeer",
+    ButtonTypeSimpleWebView: "KeyboardButtonSimpleWebView",
+});
+function isKeyboardApiInstance(value, name) {
+    const Constructor = Api[name];
+    return typeof Constructor === "function" && value instanceof Constructor;
+}
+/** Internal shared seam: callable is granted only to a recognized callback TL constructor. */
+export function normalizeKeyboardButton(button) {
+    const nested = isKeyboardApiInstance(button, "KeyboardInlineButton") ||
+        (isKeyboardApiInstance(button, "KeyboardButton") && button.type && typeof button.type === "object");
+    const payload = nested ? button.type : button;
+    let type;
+    for (const [current, legacy] of Object.entries(KEYBOARD_BUTTON_TYPES)) {
+        if (isKeyboardApiInstance(payload, nested ? current : legacy)) {
+            type = legacy;
+            break;
+        }
+    }
+    return {
+        type: type ?? payload?.className ?? button.className,
+        payload,
+        recognized: type !== undefined,
+        callable: type === "KeyboardButtonCallback",
+        webView: type === "KeyboardButtonWebView" || type === "KeyboardButtonSimpleWebView",
+    };
+}
 export function describeKeyboardButton(button, row, col) {
+    const normalized = normalizeKeyboardButton(button);
+    const payload = normalized.payload;
     const base = {
         row,
         col,
-        type: button.className,
+        type: normalized.type,
         label: "text" in button && typeof button.text === "string" ? button.text : "",
     };
-    if (button instanceof Api.KeyboardButtonCallback) {
-        base.data = Buffer.from(button.data).toString("base64");
-        if (button.requiresPassword)
+    if (!normalized.recognized)
+        return base;
+    if (normalized.callable) {
+        base.data = Buffer.from(payload.data).toString("base64");
+        if (payload.requiresPassword)
             base.requiresPassword = true;
         return base;
     }
-    if (button instanceof Api.KeyboardButtonUrl) {
-        base.url = button.url;
+    if (normalized.type === "KeyboardButtonUrl" || normalized.webView) {
+        base.url = payload.url;
         return base;
     }
-    if (button instanceof Api.KeyboardButtonUrlAuth) {
-        base.url = button.url;
-        base.buttonId = button.buttonId;
+    if (normalized.type === "KeyboardButtonUrlAuth") {
+        base.url = payload.url;
+        base.buttonId = payload.buttonId;
         return base;
     }
-    if (button instanceof Api.KeyboardButtonSwitchInline) {
-        base.switchQuery = button.query;
-        base.samePeer = Boolean(button.samePeer);
+    if (normalized.type === "KeyboardButtonSwitchInline") {
+        base.switchQuery = payload.query;
+        base.samePeer = Boolean(payload.samePeer);
         return base;
     }
-    if (button instanceof Api.KeyboardButtonWebView || button instanceof Api.KeyboardButtonSimpleWebView) {
-        base.url = button.url;
+    if (normalized.type === "KeyboardButtonUserProfile") {
+        base.userId = payload.userId?.toString();
         return base;
     }
-    if (button instanceof Api.KeyboardButtonUserProfile) {
-        base.userId = button.userId?.toString();
-        return base;
-    }
-    if (button instanceof Api.KeyboardButtonRequestPoll) {
-        if (button.quiz)
+    if (normalized.type === "KeyboardButtonRequestPoll") {
+        if (payload.quiz)
             base.quiz = true;
         return base;
     }
-    if (button instanceof Api.KeyboardButtonRequestPeer) {
-        base.buttonId = button.buttonId;
+    if (normalized.type === "KeyboardButtonRequestPeer") {
+        base.buttonId = payload.buttonId;
         return base;
     }
-    if (button instanceof Api.KeyboardButtonCopy) {
-        base.copyText = button.copyText;
+    if (normalized.type === "KeyboardButtonCopy") {
+        base.copyText = payload.copyText;
         return base;
     }
     return base;
 }
+
 export function peerToCompact(peer) {
     if (!peer)
         return undefined;

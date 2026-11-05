@@ -26,7 +26,9 @@ Upstream npm/npx или бинарник сами по себе не содер�
 
 Базовый каталог содержит 183 инструментов; ещё 13 регистрируются только при включении opt-in групп `MCP_TELEGRAM_ENABLE_GROUP_CALLS=1`, `MCP_TELEGRAM_ENABLE_STARS=1` и `MCP_TELEGRAM_ENABLE_QUICK_REPLIES=1` (всего 196). Подробности и имена — [справочник инструментов](docs/TOOLS.md).
 
-Сборка закрепляет `@overpod/mcp-telegram@1.43.1`, alias `telegram` → `teleproto@1.229.0` и Playwright 1.62.1; локальная версия Node должна быть 22+. Runtime включает 17 проверенных postimages: 13 upstream-файлов и 4 файла расширений. Версии и hash allowlist хранятся в [runtime manifest](runtime/manifest.json), описание границ — в [архитектуре](docs/ARCHITECTURE.md).
+Сборка закрепляет `@overpod/mcp-telegram@1.43.1`, alias `telegram` → `teleproto@1.229.0` и Playwright 1.62.1; локальная версия Node должна быть 22+. Runtime включает 19 проверенных postimages: 14 upstream-файлов и 5 файлов расширений. Версии и hash allowlist хранятся в [runtime manifest](runtime/manifest.json), описание границ — в [архитектуре](docs/ARCHITECTURE.md).
+
+Кнопки из нового teleproto TL keyboard layer и legacy GramJS теперь приводятся к общей форме для чтения и нажатия. `telegram-press-button` выполняет только callback-кнопки; URL и WebView остаются отдельными действиями, а кнопки с 2FA не поддерживаются этим инструментом. Совместимость проверена на синтетических объектах библиотеки, без обращения к реальному Telegram-боту.
 
 Playwright package установлен, однако Chromium может отсутствовать. Если Mini App browser-инструмент сообщает об этом, пользователь может установить совместимый browser runtime отдельной командой `npx playwright install chromium` после основной установки. Эта команда скачивает браузер и не запускается установщиком автоматически.
 

@@ -19,7 +19,7 @@ import { StringSession } from "telegram/sessions/index.js";
 import { Api } from "telegram/tl/index.js";
 import { getInputUser } from "telegram/Utils.js";
 import { RateLimiter } from "./rate-limiter.js";
-import { buildReplyTo, buildStoryPrivacyRules, describeAdminLogAction, describeAdminLogDetails, describeKeyboardButton, detectMediaType, extractDiceResult, extractMessageId, extractPeerId, extractPollMediaFromUpdates, extractStoryIdFromUpdates, generateRandomBigInt, mergeBannedRights, reactionToEmoji, summarizeAllStories, summarizeBoostsList, summarizeBoostsStatus, summarizeBroadcastStats, summarizeBusinessChatLink, summarizeBusinessChatLinks, summarizeChannelDifference, summarizeDiscussionMessage, summarizeEmojiStatus, summarizeGroupCall, summarizeGroupCallParticipants, summarizeGroupsForDiscussion, summarizeMegagroupStats, summarizeMyBoosts, summarizePeer, summarizePeerStories, summarizePoll, summarizeQuickReplies, summarizeQuickReplyMessages, summarizeReadParticipants, summarizeReportResult, summarizeSavedMusic, summarizeStarsStatus, summarizeStoriesById, summarizeStoryViewsList, summarizeUpdatesDifference, } from "./telegram-helpers.js";
+import { buildReplyTo, buildStoryPrivacyRules, describeAdminLogAction, describeAdminLogDetails, describeKeyboardButton, detectMediaType, extractDiceResult, extractMessageId, extractPeerId, extractPollMediaFromUpdates, extractStoryIdFromUpdates, generateRandomBigInt, mergeBannedRights, normalizeKeyboardButton, reactionToEmoji, summarizeAllStories, summarizeBoostsList, summarizeBoostsStatus, summarizeBroadcastStats, summarizeBusinessChatLink, summarizeBusinessChatLinks, summarizeChannelDifference, summarizeDiscussionMessage, summarizeEmojiStatus, summarizeGroupCall, summarizeGroupCallParticipants, summarizeGroupsForDiscussion, summarizeMegagroupStats, summarizeMyBoosts, summarizePeer, summarizePeerStories, summarizePoll, summarizeQuickReplies, summarizeQuickReplyMessages, summarizeReadParticipants, summarizeReportResult, summarizeSavedMusic, summarizeStarsStatus, summarizeStoriesById, summarizeStoryViewsList, summarizeUpdatesDifference, } from "./telegram-helpers.js";
 import { GetSavedMusicRequest } from "./tl/saved-music.js";
 // Telegram MCP Starter (M22): сколько ждать очередной кусок файла (TELEGRAM_DOWNLOAD_STALL_MS, 120 с).
 // Меньше потолка чтения в master.js, поэтому .part успевает удалиться здесь.
@@ -4578,16 +4578,17 @@ export class TelegramService {
                 }
                 // Telegram MCP Starter (M5): у кнопки мини-приложения общий отказ «not callable»
                 // ничего не подсказывал. Называем инструмент, которым её открывают.
-                if (button instanceof Api.KeyboardButtonWebView || button instanceof Api.KeyboardButtonSimpleWebView) {
+                const normalized = normalizeKeyboardButton(button);
+                if (normalized.webView) {
                     throw new Error(`Кнопка (${row},${column}) открывает мини-приложение. Используйте telegram-open-mini-app с bot: "${chatId}".`);
                 }
-                if (!(button instanceof Api.KeyboardButtonCallback)) {
-                    throw new Error(`Button at (${row},${column}) is ${button.className}, not callable — use the appropriate tool for URL/switch-inline/game buttons`);
+                if (!normalized.callable) {
+                    throw new Error(`Button at (${row},${column}) is ${normalized.type}, not callable — use the appropriate tool for URL/switch-inline/game buttons`);
                 }
-                if (button.requiresPassword) {
+                if (normalized.payload.requiresPassword) {
                     throw new Error(`Button at (${row},${column}) requires 2FA password confirmation — not supported by telegram-press-button`);
                 }
-                data = Buffer.from(button.data);
+                data = Buffer.from(normalized.payload.data);
             }
             else if (options.data !== undefined) {
                 data = Buffer.from(options.data, "base64");
