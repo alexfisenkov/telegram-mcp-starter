@@ -120,7 +120,7 @@ async function exerciseInstaller(kind, commit) {
   assert.equal(backups.length, 1, `${kind} preserved one prior server backup`);
   assert.equal(readFileSync(join(installRoot, backups[0], "old-runtime-marker")).compare(oldServerBytes), 0);
   const receipt = JSON.parse(readFileSync(join(server, "runtime", "source-receipt.json"), "utf8"));
-  assert.deepEqual(receipt, { repository: sourceRepo, version: "v2.1.0", commitSHA: commit });
+  assert.deepEqual(receipt, { repository: sourceRepo, version: "v2.1.1", commitSHA: commit });
 
   const packageDir = join(server, "node_modules", "@overpod", "mcp-telegram");
   run(process.execPath, [join(server, "tools", "apply-patches.mjs"), "--package-dir", packageDir, "--check"], { env });

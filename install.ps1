@@ -26,7 +26,7 @@ $ErrorActionPreference = "Stop"
 
 $PkgName    = "@overpod/mcp-telegram"
 $PkgVersion = "1.43.1"
-$SourceVersion = "v2.1.0"
+$SourceVersion = "v2.1.1"
 $SourceRepository = "alexfisenkov/telegram-mcp-starter"
 
 $BaseDir    = if ($InstallRoot) { [IO.Path]::GetFullPath($InstallRoot) } elseif ($env:TELEGRAM_MCP_INSTALL_ROOT) { [IO.Path]::GetFullPath($env:TELEGRAM_MCP_INSTALL_ROOT) } else { Join-Path $env:USERPROFILE ".telegram-mcp" }
@@ -172,7 +172,7 @@ try {
         }
     }
     $SourcePackage = Get-Content (Join-Path $StagedServer "package.json") -Raw | ConvertFrom-Json
-    if ($SourcePackage.version -ne "2.1.0") { throw "Ожидалась версия исходников 2.1.0, получена $($SourcePackage.version)." }
+    if ($SourcePackage.version -ne "2.1.1") { throw "Ожидалась версия исходников 2.1.1, получена $($SourcePackage.version)." }
     if ($SourcePackage.overrides.telegram -ne "npm:teleproto@1.229.0") { throw "Исходники должны закреплять override telegram: npm:teleproto@1.229.0." }
     $LockReaderScript = @'
 const fs = require("node:fs");

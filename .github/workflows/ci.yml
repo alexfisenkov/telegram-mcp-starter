@@ -21,8 +21,8 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
-      - run: npm test
       - run: npm run runtime:apply
+      - run: npm test
       - run: npm run runtime:check
       - run: npm run test:smoke
       - name: Bash syntax

@@ -27,7 +27,7 @@ try {
   manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
   const receipt = JSON.parse(readFileSync(receiptPath, "utf8"));
   const pkg = JSON.parse(readFileSync(join(packageDir, "package.json"), "utf8"));
-  if (receipt.repository !== "alexfisenkov/telegram-mcp-starter" || receipt.version !== "v2.1.0" ||
+  if (receipt.repository !== "alexfisenkov/telegram-mcp-starter" || receipt.version !== "v2.1.1" ||
       !/^[a-f0-9]{40}$/.test(receipt.commitSHA ?? "")) {
     throw new Error("source receipt is missing or does not contain the pinned public commit SHA");
   }
@@ -82,7 +82,7 @@ if (!statusMode) {
   env.TELEGRAM_PROXY_SOCKS_TYPE = "5";
 }
 const transport = new StdioClientTransport({ command, args, env });
-const client = new Client({ name: "telegram-mcp-doctor", version: "2.1.0" });
+const client = new Client({ name: "telegram-mcp-doctor", version: "2.1.1" });
 const timer = setTimeout(() => {
   console.error("[X] MCP-сервер не ответил за 30 секунд.");
   process.exit(1);
