@@ -211,18 +211,35 @@ process.stdout.write(JSON.stringify({
         if (Test-Path $BackupDir) { throw "Каталог резервной копии уже существует: $BackupDir" }
         # Telegram MCP Starter: с 2.2.0 в runtime лежит нативный модуль шифрования (cifrante.node).
         # Пока его держит запущенный сервер, Windows не даёт переименовать каталог. Свою фоновую
-        # задачу останавливаем сами (её перезапускает шаг ниже); открытые клиенты закрывает человек.
-        $RunningDaemonTask = $null
-        if (Get-Command Get-ScheduledTask -ErrorAction SilentlyContinue) {
-            $RunningDaemonTask = Get-ScheduledTask -TaskName "TelegramMcpDaemon" -ErrorAction SilentlyContinue
-        }
-        if ($RunningDaemonTask -and $RunningDaemonTask.State -eq "Running") {
-            try { Stop-ScheduledTask -TaskName "TelegramMcpDaemon" -ErrorAction Stop; Start-Sleep -Seconds 2 } catch { }
+        # службу останавливаем сами (шаг restart ниже её поднимает); открытые клиенты закрывает человек.
+        # Задача запускает wscript, а тот отпускает node, поэтому Stop-ScheduledTask владельца не
+        # останавливает: как и daemon-setup.ps1, останавливаем процесс по PID из daemon.lock и
+        # только если его командная строка указывает на установленный cli.js.
+        $StoppedDaemonOwner = $false
+        $DaemonLock = Join-Path $BaseDir "daemon.lock"
+        $DaemonCliJs = Join-Path $ServerDir "node_modules\@overpod\mcp-telegram\dist\cli.js"
+        $HasDaemonTask = (Get-Command Get-ScheduledTask -ErrorAction SilentlyContinue) -and
+            (Get-ScheduledTask -TaskName "TelegramMcpDaemon" -ErrorAction SilentlyContinue)
+        if ($HasDaemonTask -and (Test-Path -LiteralPath $DaemonLock)) {
+            $OwnerPidText = Get-Content -LiteralPath $DaemonLock -TotalCount 1 -ErrorAction SilentlyContinue
+            if ($OwnerPidText -match '^\d+$' -and (Get-Process -Id ([int]$OwnerPidText) -ErrorAction SilentlyContinue)) {
+                $OwnerInfo = Get-CimInstance Win32_Process -Filter "ProcessId = $([int]$OwnerPidText)" -ErrorAction SilentlyContinue
+                if ($OwnerInfo -and $OwnerInfo.CommandLine -and
+                    $OwnerInfo.CommandLine.IndexOf($DaemonCliJs, [StringComparison]::OrdinalIgnoreCase) -ge 0) {
+                    try { Stop-ScheduledTask -TaskName "TelegramMcpDaemon" -ErrorAction SilentlyContinue } catch { }
+                    Stop-Process -Id ([int]$OwnerPidText) -Force -ErrorAction SilentlyContinue
+                    try { Wait-Process -Id ([int]$OwnerPidText) -Timeout 20 -ErrorAction Stop } catch { }
+                    $StoppedDaemonOwner = $true
+                }
+            }
         }
         try {
             Move-Item -LiteralPath $ServerDir -Destination $BackupDir -ErrorAction Stop
         } catch {
-            throw "Папка сервера занята работающей программой: $ServerDir. Закройте Claude Desktop, Claude Code и другие программы, где подключён Telegram, и запустите установщик ещё раз. Текущая версия не тронута."
+            if ($StoppedDaemonOwner) {
+                try { Start-ScheduledTask -TaskName "TelegramMcpDaemon" -ErrorAction Stop } catch { }
+            }
+            throw "Папка сервера занята работающей программой: $ServerDir. Закройте Claude Desktop, Claude Code и другие программы, где подключён Telegram, и запустите установщик ещё раз. Если вы включали фоновую службу и это не помогло, выполните `"$BaseDir\daemon-setup.ps1`" remove и запустите установщик снова. Текущая версия не тронута."
         }
     }
     try {
