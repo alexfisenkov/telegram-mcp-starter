@@ -209,7 +209,21 @@ process.stdout.write(JSON.stringify({
     if (Test-Path $ServerDir) {
         $BackupDir = Join-Path $BaseDir ("server.backup-" + (Get-Date).ToUniversalTime().ToString("yyyyMMddTHHmmssZ"))
         if (Test-Path $BackupDir) { throw "Каталог резервной копии уже существует: $BackupDir" }
-        Move-Item -LiteralPath $ServerDir -Destination $BackupDir
+        # Telegram MCP Starter: с 2.2.0 в runtime лежит нативный модуль шифрования (cifrante.node).
+        # Пока его держит запущенный сервер, Windows не даёт переименовать каталог. Свою фоновую
+        # задачу останавливаем сами (её перезапускает шаг ниже); открытые клиенты закрывает человек.
+        $RunningDaemonTask = $null
+        if (Get-Command Get-ScheduledTask -ErrorAction SilentlyContinue) {
+            $RunningDaemonTask = Get-ScheduledTask -TaskName "TelegramMcpDaemon" -ErrorAction SilentlyContinue
+        }
+        if ($RunningDaemonTask -and $RunningDaemonTask.State -eq "Running") {
+            try { Stop-ScheduledTask -TaskName "TelegramMcpDaemon" -ErrorAction Stop; Start-Sleep -Seconds 2 } catch { }
+        }
+        try {
+            Move-Item -LiteralPath $ServerDir -Destination $BackupDir -ErrorAction Stop
+        } catch {
+            throw "Папка сервера занята работающей программой: $ServerDir. Закройте Claude Desktop, Claude Code и другие программы, где подключён Telegram, и запустите установщик ещё раз. Текущая версия не тронута."
+        }
     }
     try {
         Move-Item -LiteralPath $StagedServer -Destination $ServerDir
