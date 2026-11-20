@@ -5,7 +5,7 @@
   "license": "MIT",
   "telegramDependency": {
     "packageName": "teleproto",
-    "version": "1.229.0",
+    "version": "1.233.0",
     "alias": "telegram"
   },
   "files": [
@@ -13,7 +13,7 @@
       "path": "dist/telegram-client.js",
       "source": "upstream-postimage",
       "preimageSha256": "0f327c726a8b9030c63f3632be6b13529d5f64d5e1c2959744d5a93bca495ded",
-      "postimageSha256": "7c18b09674613dc29e2c281c7e352156aa4c8b3e4da846c690755c67737737e4"
+      "postimageSha256": "07391d292b197db78657afdddf5fd8ddf3e27a3677aa728ca4177d81a9480ef3"
     },
     {
       "path": "dist/telegram-helpers.js",
@@ -91,19 +91,19 @@
       "path": "dist/miniapp-shim.js",
       "source": "starter-extension",
       "preimageSha256": null,
-      "postimageSha256": "a7712566ee666a7d9701ccd8b1a3f6b462e4574e1e81ac814753a04deac1d216"
+      "postimageSha256": "c82794a3990d67e620a56e64d6cac416e04014705ef719aa8cbfa54b5094241e"
     },
     {
       "path": "dist/miniapp-browser.js",
       "source": "starter-extension",
       "preimageSha256": null,
-      "postimageSha256": "87cf556fd9f3d9d0a14f96ad1faea33118068cd1928a8cc2f54b928e2c0238a1"
+      "postimageSha256": "75ebbdd04a5f3243ae10d5023d970283d20e404e7f2b87565bf1a8aa41469e45"
     },
     {
       "path": "dist/tools/miniapps.js",
       "source": "starter-extension",
       "preimageSha256": null,
-      "postimageSha256": "60e3502e3af4130add796f00f9f63707710c854c94e8edfb7da269f62ab0dd37"
+      "postimageSha256": "c253f8803f436356bbded1f440230b1405f288c59c081185987d081d1f52259f"
     },
     {
       "path": "dist/tools/miniapp-ui.js",

@@ -32,11 +32,13 @@ const upstreamFiles = new Map(upstreamFixture.files.map((file) => [file.path, fi
 assert.equal(upstreamFiles.size, manifest.files.filter((file) => file.preimageSha256 !== null).length,
   'fixture contains every preimage file exactly once');
 
-function makePackage(name) {
-  const root = join(tempRoot, name);
+function makePackage(name, { hoisted = false } = {}) {
+  // hoisted: the npm layout for teleproto 1.233 (<install>/node_modules/telegram next to
+  // <install>/node_modules/@overpod/mcp-telegram); otherwise the alias is nested in the package.
+  const root = hoisted ? join(tempRoot, name, 'node_modules/@overpod/mcp-telegram') : join(tempRoot, name);
   mkdirSync(root, { recursive: true });
   writeFileSync(join(root, 'package.json'), JSON.stringify(upstreamFixture.packageMetadata));
-  const aliasDir = join(root, 'node_modules/telegram');
+  const aliasDir = hoisted ? join(tempRoot, name, 'node_modules/telegram') : join(root, 'node_modules/telegram');
   mkdirSync(aliasDir, { recursive: true });
   writeFileSync(join(aliasDir, 'package.json'), JSON.stringify(upstreamFixture.telegramAliasMetadata));
   for (const file of manifest.files) {
@@ -63,6 +65,25 @@ try {
     const bytes = readFileSync(join(clean, file.path));
     assert.equal(bytes.length > 0, true, `${file.path} has a postimage`);
   }
+
+  const hoisted = makePackage('hoisted', { hoisted: true });
+  assert.equal(applyPatches(hoisted).applied, manifest.files.length, 'the hoisted npm layout of the telegram alias is accepted');
+  assert.equal(applyPatches(hoisted, { check: true }).checked, true, '--check accepts the hoisted layout');
+
+  const hoistedWrong = makePackage('hoisted-wrong-alias', { hoisted: true });
+  writeFileSync(join(tempRoot, 'hoisted-wrong-alias', 'node_modules/telegram/package.json'),
+    JSON.stringify({ ...upstreamFixture.telegramAliasMetadata, version: '1.229.0' }));
+  assert.throws(() => applyPatches(hoistedWrong), /expected telegram alias teleproto@/, 'a hoisted alias of another teleproto version is rejected');
+
+  const shadowed = makePackage('nested-shadows-hoisted', { hoisted: true });
+  mkdirSync(join(shadowed, 'node_modules/telegram'), { recursive: true });
+  writeFileSync(join(shadowed, 'node_modules/telegram/package.json'), JSON.stringify({ name: 'telegram', version: '2.26.22' }));
+  assert.throws(() => applyPatches(shadowed), /expected telegram alias teleproto@/, 'a nested telegram that Node would load first is checked, not the hoisted one');
+
+  const noAlias = join(tempRoot, 'no-alias');
+  mkdirSync(noAlias, { recursive: true });
+  writeFileSync(join(noAlias, 'package.json'), JSON.stringify(upstreamFixture.packageMetadata));
+  assert.throws(() => applyPatches(noAlias), /teleproto metadata is missing/, 'a package without the telegram alias is rejected');
 
   const drift = makePackage('drift');
   const driftPath = join(drift, manifest.files.find((file) => file.preimageSha256 !== null).path);
@@ -121,7 +142,7 @@ try {
   assert.match(traversal.stderr, /unsafe path segment/i);
   assert.equal(readFileSync(escapeSentinel, 'utf8'), 'outside remains unchanged\n', 'manifest traversal cannot write outside the package');
 
-  console.log(`OK: ${manifest.files.length} exact runtime files; preflight, idempotency, collision, drift, version, symlink/traversal, CLI apply/check`);
+  console.log(`OK: ${manifest.files.length} exact runtime files; preflight, idempotency, collision, drift, version, symlink/traversal, nested and hoisted alias, CLI apply/check`);
 } finally {
   rmSync(tempRoot, { recursive: true, force: true });
 }

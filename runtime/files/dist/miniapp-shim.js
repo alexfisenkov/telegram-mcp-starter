@@ -63,3 +63,27 @@ export const TELEGRAM_CONTAINER_SHIM = `
   };
 })();
 `;
+// Telegram MCP Starter (M3-origin). Клиент Telegram не принимает
+// методы мини-приложения с доменов, отличных от исходного (Bot API 10.2). Playwright
+// выполняет init-скрипт в каждом фрейме, и без проверки контейнер получали бы фреймы
+// и страницы чужих доменов: у нас апп работал бы, а в живом клиенте — нет.
+// Контейнер ставится только в главный фрейм с доменом URL, выданного Telegram.
+export function miniAppOrigin(url) {
+  try {
+    const origin = new URL(url).origin;
+    return origin && origin !== "null" ? origin : null;
+  } catch {
+    return null;
+  }
+}
+export function telegramContainerShim(allowedOrigin) {
+  if (!allowedOrigin)
+    throw new Error("Telegram MCP Starter (M3-origin): у адреса мини-приложения нет домена");
+  return `
+(() => {
+  if (window.top !== window) return;
+  if (location.origin !== ${JSON.stringify(allowedOrigin)}) return;
+  ${TELEGRAM_CONTAINER_SHIM}
+})();
+`;
+}

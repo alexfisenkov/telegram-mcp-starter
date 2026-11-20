@@ -4,6 +4,7 @@ import { createWriteStream, existsSync, mkdirSync, readdirSync, readFileSync, ut
 import { chmod, readFile, stat, unlink, writeFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";  // Telegram MCP Starter (A11): MTProtoSender teleproto для печати
+import { AsyncLocalStorage } from "node:async_hooks";  // Telegram MCP Starter (M22): флуд своей передачи
 import { homedir, hostname } from "node:os";  // Telegram MCP Starter (M22): hostname — чья это машина, в тексте ошибки
 import { dirname, extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -75,11 +76,19 @@ function fisMountinfo() {
     try { return readFileSync("/proc/self/mountinfo", "utf8"); } catch { return ""; }
 }
 // Telegram MCP Starter (M22): планировщик teleproto пережидает FLOOD_WAIT молча, это не зависание.
-// Сколько мс ему ещё ждать; ожидание дольше предела отдаём вызывающему словами.
+// Сколько мс ему ещё ждать; ожидание дольше предела отдаём вызывающему словами. В 1.233 срок
+// отмечает fisGuardFileFlood() в контексте своей передачи (fisFloodTransfer), не на весь клиент.
 const FIS_MEDIA_FLOOD_MAX_MS = 600_000;
-function fisMediaFloodLeftMs(client) {
-    const balances = client?._media?._balances?.values?.();
-    return balances ? Math.max(0, ...[...balances].map((b) => b.floodWaitUntil - Date.now())) : 0;
+const fisFloodAls = new AsyncLocalStorage();
+// Контекст одной передачи: части (вызовы FileTransfers.run) и срок, до которого каждая спит.
+function fisFloodTransfer() {
+    return { parts: new Set() };
+}
+function fisMediaFloodLeftMs(transfer) {
+    let until = 0;
+    for (const part of transfer?.parts ?? [])
+        until = Math.max(until, part.until);
+    return Math.max(0, until - Date.now());
 }
 function fisDownloadExtension(target, doc) {
     if (!doc)
@@ -100,104 +109,174 @@ function fisDefaultDownloadPath(chatId, messageId, richIndex, target, doc) {
     return join(dir, `tg-${chat}-${messageId}${rich}${fisDownloadExtension(target, doc)}`);
 }
 export { buildStoryPrivacyRules, describeAdminLogAction, describeAdminLogDetails, describeKeyboardButton, detectMediaType, extractPeerId, extractPollMediaFromUpdates, extractStoryIdFromUpdates, mergeBannedRights, peerToCompact, reactionToEmoji, summarizeAllStories, summarizeBoost, summarizeBoostsList, summarizeBoostsStatus, summarizeBroadcastStats, summarizeBusinessChatLink, summarizeBusinessChatLinks, summarizeChannelDifference, summarizeDiscussionMessage, summarizeEmojiStatus, summarizeGroupCall, summarizeGroupCallInfo, summarizeGroupCallParticipant, summarizeGroupCallParticipants, summarizeGroupsForDiscussion, summarizeMegagroupStats, summarizeMyBoost, summarizeMyBoosts, summarizePeer, summarizePeerStories, summarizePoll, summarizePrepaidGiveaway, summarizeQuickReplies, summarizeQuickReply, summarizeQuickReplyMessage, summarizeQuickReplyMessages, summarizeReadParticipants, summarizeReportResult, summarizeSavedMusic, summarizeStarsAmount, summarizeStarsStatus, summarizeStarsSubscription, summarizeStarsTransaction, summarizeStarsTransactionPeer, summarizeStoriesById, summarizeStoryItem, summarizeStoryView, summarizeStoryViewsList, summarizeUpdatesDifference, } from "./telegram-helpers.js";
-// Telegram MCP Starter (R4b): транспорт как у gramJS 2.26.22. gramJS в Node при useWSS ходил
-// обычным TCP (PromisedNetSockets) к IP DC, меняя только порт главного DC: useWSS ? 443 : 80
-// (TelegramClient.js:1081), порт из сессии не читал. teleproto опцию useWSS не знает и берёт
-// порт главного DC из сессии (session.port || 80), остальные DC — 443. Ставим порт в
-// сессии в памяти ровно как gramJS; адрес остаётся IP — откат на gramJS сессию читает.
-// Настоящий WebSocket (networkSocket) не включаем: он переписал бы адрес в сессии на
-// *.web.telegram.org. Пул медиасессий teleproto — 2–8 соединений на DC (у gramJS одно):
-// держим одно, потолок — TELEGRAM_MEDIA_SESSIONS (1–8).
+// Telegram MCP Starter (R4b, перенос на teleproto 1.233): транспорт как у gramJS 2.26.22. gramJS в
+// Node при useWSS ходил обычным TCP к IP DC, меняя только порт главного DC: useWSS ? 443 : 80.
+// teleproto опцию useWSS не знает; транспорт по умолчанию — TcpTransport (TCP к IP), порт
+// главного DC он берёт из сессии (TelegramClient._connectOnce: session.port || 443). Ставим
+// порт в сессии в памяти ровно как gramJS; адрес остаётся IP — откат сессию читает.
+// WebSocket (transport WebSocketTransport, устаревший networkSocket) не включаем: с ним
+// _initSession переписал бы адрес в сессии на *.web.telegram.org. Пул медиа: число
+// соединений на DC — downloadPool.sessions (1.233 его не масштабирует и maxSessions не
+// читает), по умолчанию одно, TELEGRAM_MEDIA_SESSIONS (1–8) задаёт число.
 export function fisClientOptions(useWSS, session) {
     if (!fisTeleproto())
         return { useWSS };
     if (session?.serverAddress && session.dcId)
         session.setDC(session.dcId, session.serverAddress, useWSS ? 443 : 80);
     const n = Math.max(1, Math.min(8, Number.parseInt(process.env.TELEGRAM_MEDIA_SESSIONS ?? "1", 10) || 1));
-    return { downloadPool: { sessions: 1, maxSessions: n } };
+    return { downloadPool: { sessions: n } };
 }
-// Telegram MCP Starter: stop destroyed MTProto senders from reconnecting.
-// teleproto умеет ОЖИТЬ: MTProtoSender.disconnect() ставит lifecycle "dead", но этот флаг
-// не уважают (1) reconnect() — после sleep зовёт _reconnect() без проверки; (2) цикл
-// connect() — после retryDelay (до 64 с) делает следующую попытку _connect(); (3) connect()
-// переписывает "dead" на "connecting"; (4) _connect(), застигнутый посреди TCP-дозвона,
-// ставит "connected" и запускает ввод-вывод. Ожившему старому sender рядом с новым
-// клиентом на том же ключе — прямой путь к AUTH_KEY_DUPLICATED. Поэтому sender любого
-// клиента, у которого стоит _destroyed (teleproto ставит его первой строкой destroy())
-// или наш _fisSealed, больше не соединяется, не переподключается и не запускает IO —
-// печать на прототипе, она же накрывает пул медиа (у всех sender есть _client).
+// Telegram MCP Starter (A11, teleproto 1.233). Уничтоженный
+// клиент не должен открыть ни одного соединения на своём ключе: ожившему старому sender
+// рядом с новым клиентом — прямой путь к AUTH_KEY_DUPLICATED. В 1.233 sender — Session
+// (network/session/Session.js): disconnect() ставит status "dead" и обрывает AbortController
+// цикла supervise(), и три окна 1.229 (пауза reconnect, повторы connect, TCP-дозвон) библиотека
+// закрыла сама. Остались окна, которых abort не видит: (1) пул (SessionPool.start) мог начать
+// поднимать соединение до destroy и после него создаёт и дозванивает НОВЫЙ Session — его
+// connect() о destroy не знает; (2) disconnect() между возвратом open() и setStatus
+// ("connected") — статус лжёт «connected» у мёртвого sender. Печать на прототипе Session:
+// sender клиента с _destroyed (teleproto ставит его первой строкой destroy()) или нашим
+// _fisSealed не соединяется (connect), не поднимает связь (open — до дозвона и после него)
+// и не выходит из "dead" (setStatus). Session хранит клиента в opts.client.
 const fisRequireTp = createRequire(import.meta.url);
 function fisSenderSealed(sender) {
-    const c = sender?._client;
+    const c = sender?.opts?.client;
     return !!(c && (c._fisSealed || c._destroyed));
 }
 function fisSealError() {
     return new Error("Telegram MCP Starter (A11): sender уничтоженного клиента не соединяется");
 }
-let fisSendersGuarded = false;
-export function fisGuardSenders(P) {
-    if (fisSendersGuarded && !P)
+// Остановка запечатанного sender: stop() ставит "dead", обрывает цикл supervise (abort) и
+// закрывает связь и сокет; пул получает onConnectionBreak и убирает слот.
+function fisSealStop(sender) {
+    try { sender.stop(fisSealError(), "disconnected", false); } catch { }
+}
+let fisSealMode = null;
+// Печать включена, если вернула "session"; null — печать не встала (форма Session не та).
+export function fisSealStatus() {
+    return fisSealMode;
+}
+export function fisGuardSenders() {
+    if (fisSealMode)
         return true;
-    if (!P) {
-        if (!fisTeleproto())
-            return false;
-        try {
-            P = fisRequireTp("telegram/network/MTProtoSender.js").MTProtoSender.prototype;
-        }
-        catch {
-            return false;
-        }
+    if (!fisTeleproto())
+        return false;
+    let P;
+    try {
+        P = fisRequireTp("telegram/network/MTProtoSender.js").MTProtoSender.prototype;
     }
-    if (P.__fisSealGuard)
-        return (fisSendersGuarded = true);
-    const orig = { connect: P.connect, _connect: P._connect, _startIo: P._startIo, reconnect: P.reconnect, _reconnect: P._reconnect };
-    P.connect = async function (...args) {
-        if (fisSenderSealed(this)) {
-            this._lifecycle = "dead";
-            throw fisSealError();
-        }
-        return orig.connect.apply(this, args);
-    };
-    P._connect = async function (...args) {
-        if (fisSenderSealed(this)) {
-            this._lifecycle = "dead";
-            throw fisSealError();
-        }
-        const result = await orig._connect.apply(this, args);
-        if (fisSenderSealed(this)) {
-            this._lifecycle = "dead";
-            try { this._stopIo?.(); } catch { }
-            try { await this._connection?.disconnect?.(); } catch { }
-            throw fisSealError();
-        }
-        return result;
-    };
-    P._startIo = function (connection, ...rest) {
-        if (fisSenderSealed(this)) {
-            this._lifecycle = "dead";
-            Promise.resolve().then(() => connection?.disconnect?.()).catch(() => { });
-            return;
-        }
-        return orig._startIo.call(this, connection, ...rest);
-    };
-    P.reconnect = function (...args) {
-        if (fisSenderSealed(this)) {
-            this._lifecycle = "dead";
-            return;
-        }
-        return orig.reconnect.apply(this, args);
-    };
-    P._reconnect = async function (...args) {
-        if (fisSenderSealed(this)) {
-            this._lifecycle = "dead";
-            return;
-        }
-        return orig._reconnect.apply(this, args);
-    };
-    P.__fisSealGuard = true;
-    return (fisSendersGuarded = true);
+    catch (e) {
+        console.error(`[mcp-telegram] Telegram MCP Starter (A11): sender teleproto не загрузился, печать НЕ включена: ${e?.message ?? e}`);
+        return false;
+    }
+    const need = ["connect", "open", "setStatus", "stop", "supervise", "reconnect", "disconnect"];
+    const missing = need.filter((m) => typeof P[m] !== "function");
+    if (missing.length) {
+        console.error(`[mcp-telegram] Telegram MCP Starter (A11): у sender teleproto нет ${missing.join(", ")} — печать НЕ включена, подключение запрещено`);
+        return false;
+    }
+    if (!P.__fisSealGuard) {
+        const orig = { connect: P.connect, open: P.open, setStatus: P.setStatus, reconnect: P.reconnect };
+        P.connect = async function (...args) {
+            if (fisSenderSealed(this)) {
+                fisSealStop(this);
+                throw fisSealError();
+            }
+            return orig.connect.apply(this, args);
+        };
+        P.open = async function (connection, signal) {
+            if (fisSenderSealed(this)) {
+                fisSealStop(this);
+                throw fisSealError();
+            }
+            const link = await orig.open.call(this, connection, signal);
+            if (fisSenderSealed(this)) {
+                try { link?.close?.("restart"); } catch { }
+                try { await connection?.disconnect?.(); } catch { }
+                fisSealStop(this);
+                throw fisSealError();
+            }
+            return link;
+        };
+        P.setStatus = function (status) {
+            if (status !== "dead" && fisSenderSealed(this)) {
+                this.status = "dead";
+                return;
+            }
+            return orig.setStatus.call(this, status);
+        };
+        P.reconnect = function (...args) {
+            if (fisSenderSealed(this))
+                return;
+            return orig.reconnect.apply(this, args);
+        };
+        P.__fisSealGuard = true;
+    }
+    fisSealMode = "session";
+    return true;
 }
 fisGuardSenders();
+// Telegram MCP Starter (A11): без печати клиент teleproto не строим — лучше честный отказ, чем
+// второй живой sender на ключе (это ведёт к AUTH_KEY_DUPLICATED и отзыву сессии).
+function fisSealRefusal() {
+    if (!fisTeleproto() || fisSealStatus())
+        return null;
+    return "Telegram MCP Starter (A11): защита от второго соединения не встала на эту версию teleproto — подключение запрещено. Переустановите runtime поддерживаемым установщиком (npm run runtime:check покажет расхождение).";
+}
+// Telegram MCP Starter (M22, teleproto 1.233): FLOOD_WAIT медиа пережидает FileTransfers.run() —
+// sleep внутри, снаружи его не видно (FileTransfers.js:146–200). Отметка — на ту часть той
+// передачи, что получила флуд (AsyncLocalStorage: run() и send() идут в контексте скачивания),
+// и только если run() действительно будет ждать: FLOOD_PREMIUM_WAIT ждётся всегда, обычный
+// FLOOD_WAIT — если влезает в бюджет run() (60 с, у бота 8 с), дольше run() бросает сразу.
+// Конец run() (успех или ошибка) отметку снимает. Чужая передача отметку не видит.
+function fisFloodSeconds(e) {
+    if (!/^FLOOD_(?:PREMIUM_|TEST_PHONE_)?WAIT_/.test(e?.errorMessage ?? ""))
+        return 0;
+    const s = typeof e.seconds === "number" ? e.seconds : Number(String(e.errorMessage).split("_").pop());
+    return Number.isFinite(s) && s > 0 ? s : 1;
+}
+function fisGuardFileFlood() {
+    if (!fisTeleproto())
+        return false;
+    let P;
+    try {
+        P = fisRequireTp("telegram/client/files/FileTransfers.js").FileTransfers.prototype;
+    }
+    catch {
+        return false;
+    }
+    if (typeof P.send !== "function" || typeof P.run !== "function")
+        return false;
+    if (P.__fisFloodMark)
+        return true;
+    const send = P.send, run = P.run;
+    P.run = function (...args) {
+        const transfer = fisFloodAls.getStore()?.transfer;
+        if (!transfer)
+            return run.apply(this, args);
+        const part = { until: 0 };
+        transfer.parts.add(part);
+        const p = fisFloodAls.run({ transfer, part }, () => run.apply(this, args));
+        Promise.resolve(p).finally(() => transfer.parts.delete(part)).catch(() => { });
+        return p;
+    };
+    P.send = function (...args) {
+        const p = send.apply(this, args);
+        const part = fisFloodAls.getStore()?.part;
+        if (part) {
+            const budgetMs = this.client?._bot ? 8000 : 60000;
+            Promise.resolve(p).then(() => { part.until = 0; }, (e) => {
+                const s = fisFloodSeconds(e);
+                const waits = s && (/^FLOOD_PREMIUM_WAIT_/.test(e?.errorMessage ?? "") || s * 1000 <= budgetMs);
+                part.until = waits ? Date.now() + s * 1000 : 0;
+            });
+        }
+        return p;
+    };
+    P.__fisFloodMark = true;
+    return true;
+}
+fisGuardFileFlood();
 // Telegram MCP Starter (R4b): пределы дотягивания усечённых Rich (messages.getRichMessage).
 // Чтение укладывается в «бюджет + один вызов» (15 + 8 с) — меньше IPC-таймаута 30 с.
 function fisEnvInt(name, dflt) {
@@ -836,6 +915,14 @@ export class TelegramService {
             this.bumpReconnectBackoff();
             return false;
         }
+        // Telegram MCP Starter (A11): печать не встала — клиента не строим вовсе.
+        const fisRefusal = fisSealRefusal();
+        if (fisRefusal) {
+            this.lastError = fisRefusal;
+            this.lastConnectError = fisRefusal;
+            this.bumpReconnectBackoff();
+            return false;
+        }
         if (!this.sessionString) {
             const loaded = await this.loadSession();
             if (!loaded)
@@ -946,6 +1033,54 @@ export class TelegramService {
         this.nextConnectAllowedAt = Date.now() + RECONNECT_BACKOFF_MS[idx];
         this.reconnectAttempt = Math.min(this.reconnectAttempt + 1, RECONNECT_BACKOFF_MS.length - 1);
     }
+    /**
+     * Telegram MCP Starter (A7-tp п.1): страж ключа главного DC. Session teleproto 1.233
+     * берёт authKeyCallback один раз, при создании (TelegramClient._connectOnce:
+     * this._authKeyCallback.bind(this)), поэтому ставить его надо ДО client.connect() — и в
+     * connectOnce, и в QR-входе. Пока клиент не стал this.client, страж отдаёт вызов исходному
+     * колбэку (QR-вход создаёт ключ сам); onError и invoke QR-клиенту до входа не ставятся.
+     */
+    fisInstallKeyGuard(client) {
+        if (!fisTeleproto() || client._fisKeyGuard)
+            return;
+        const origKeyCb = client._authKeyCallback?.bind(client);
+        if (!origKeyCb)
+            return;
+        client._fisKeyGuard = true;
+        client._authKeyCallback = async (authKey, dcId) => {
+            if (this.client !== client || dcId !== client.session?.dcId)
+                return origKeyCb(authKey, dcId);
+            const saved = await fisSavedKey(this.sessionString);
+            if (authKey) {
+                const got = authKey.getKey?.();
+                if (saved && got && !Buffer.from(got).equals(Buffer.from(saved))) {
+                    this.markSessionDead(`AUTH_KEY_REKEYED dc${dcId}: библиотека выпустила новый ключ`);
+                    return;
+                }
+                return origKeyCb(authKey, dcId);
+            }
+            const now = Date.now();
+            this.fisKeyResets = (this.fisKeyResets ?? []).filter((t) => now - t < 600000);
+            this.fisKeyResets.push(now);
+            const k = this.fisKeyResets.length;
+            const holder = client.session?.getAuthKey?.(dcId) ?? client._sender?.authKey;
+            if (!saved || !holder || k > 2) {
+                this.markSessionDead(`AUTH_KEY_RESET dc${dcId} ×${k} за 10 мин: сервер не узнал ключ`);
+                return;
+            }
+            await holder.setKey(saved);
+            const pause = fisEnvInt("TELEGRAM_KEY_RESET_PAUSE_MS", 5000) * (k === 1 ? 1 : 6);
+            console.error(`[mcp-telegram] AUTH_KEY_RESET dc${dcId}: сервер не узнал ключ — попытка ${k}/2 тем же ключом через ${pause} мс, затем проба getMe`);
+            await fisSleep(pause);
+            if (this.client !== client || this.sessionDead)
+                return;
+            const probe = setTimeout(() => {
+                if (this.client === client && !this.sessionDead)
+                    client.getMe().catch(() => { });
+            }, fisEnvInt("TELEGRAM_KEY_PROBE_MS", 15000));
+            probe.unref?.();
+        };
+    }
     /** Telegram MCP Starter (A7): ловим отзыв ключа, случившийся УЖЕ ПОСЛЕ успешного коннекта. */
     installFatalErrorHandler(client) {
         client.onError = async (err) => {
@@ -959,54 +1094,22 @@ export class TelegramService {
             console.error(`[mcp-telegram] client error: ${msg}`);
         };
         // Telegram MCP Starter (A7-tp, R4b): teleproto доводит до onError не всё, что доводил gramJS.
-        // 1) На транспортный -404 / «invalid auth key» главного DC teleproto стирает ключ
-        //    (он общий у соединения, dcenter и сессии) и зовёт _authKeyCallback(undefined),
-        //    а затем reconnect() — с пустым ключом это новый DH, то есть демон жил бы
-        //    неавторизованным. Разовый -404 бывает и на работах Telegram, поэтому не хороним
-        //    сразу: возвращаем в тот же объект ключ из строки сессии на диске (DH идёт только
-        //    при пустом ключе, MTProtoSender._connect), ждём паузу и после переподключения
-        //    пробуем getMe. Смерть — по подтверждению: фатальная ошибка на пробе (ловит
-        //    обёртка invoke ниже) или третий сброс за 10 минут. Если teleproto всё же выпустил
-        //    новый ключ главного DC — сессия мертва сразу. Файл сессии не трогается.
+        // 1) На транспортный -404 главного DC teleproto 1.233 (Session.onBadKey) сначала
+        //    открывает новую MTProto-сессию на том же ключе, при повторе проверяет ключ
+        //    отдельным соединением (_validateAuthKey, bindTempAuthKey) и, только если сервер
+        //    подтвердил, что ключа не знает, стирает ключ (он общий у sender, dcenter и сессии),
+        //    зовёт _authKeyCallback(undefined) и переподключается — с пустым ключом это новый
+        //    DH (Session.ensureKey), то есть демон жил бы неавторизованным. Новый ключ не
+        //    допускаем: возвращаем в тот же объект ключ из строки сессии на диске, ждём паузу
+        //    и после переподключения пробуем getMe. Смерть — по подтверждению: фатальная
+        //    ошибка на пробе (ловит обёртка invoke ниже) или третий сброс за 10 минут. Если
+        //    teleproto всё же выпустил новый ключ главного DC — сессия мертва сразу. Файл
+        //    сессии не трогается.
         // 2) _handleReconnect не отдаёт onError ошибки 401 — ловим их в invoke главного DC
-        //    (getMe пробы идёт через него же), только точным именем ошибки.
+        //    (getMe пробы идёт через client.api → this.invoke), только точным именем ошибки.
+        //    В 1.233 DC приходит и третьим аргументом: invoke(request, dcId, { dcId }).
         if (fisTeleproto()) {
-            const origKeyCb = client._authKeyCallback?.bind(client);
-            if (origKeyCb) {
-                client._authKeyCallback = async (authKey, dcId) => {
-                    if (this.client !== client || dcId !== client.session?.dcId)
-                        return origKeyCb(authKey, dcId);
-                    const saved = await fisSavedKey(this.sessionString);
-                    if (authKey) {
-                        const got = authKey.getKey?.();
-                        if (saved && got && !Buffer.from(got).equals(Buffer.from(saved))) {
-                            this.markSessionDead(`AUTH_KEY_REKEYED dc${dcId}: библиотека выпустила новый ключ`);
-                            return;
-                        }
-                        return origKeyCb(authKey, dcId);
-                    }
-                    const now = Date.now();
-                    this.fisKeyResets = (this.fisKeyResets ?? []).filter((t) => now - t < 600000);
-                    this.fisKeyResets.push(now);
-                    const k = this.fisKeyResets.length;
-                    const holder = client.session?.getAuthKey?.(dcId) ?? client._sender?.authKey;
-                    if (!saved || !holder || k > 2) {
-                        this.markSessionDead(`AUTH_KEY_RESET dc${dcId} ×${k} за 10 мин: сервер не узнал ключ`);
-                        return;
-                    }
-                    await holder.setKey(saved);
-                    const pause = fisEnvInt("TELEGRAM_KEY_RESET_PAUSE_MS", 5000) * (k === 1 ? 1 : 6);
-                    console.error(`[mcp-telegram] AUTH_KEY_RESET dc${dcId}: сервер не узнал ключ — попытка ${k}/2 тем же ключом через ${pause} мс, затем проба getMe`);
-                    await fisSleep(pause);
-                    if (this.client !== client || this.sessionDead)
-                        return;
-                    const probe = setTimeout(() => {
-                        if (this.client === client && !this.sessionDead)
-                            client.getMe().catch(() => { });
-                    }, fisEnvInt("TELEGRAM_KEY_PROBE_MS", 15000));
-                    probe.unref?.();
-                };
-            }
+            this.fisInstallKeyGuard(client);
             const origInvoke = client.invoke.bind(client);
             client.invoke = async (request, dcId, ...rest) => {
                 try {
@@ -1014,11 +1117,21 @@ export class TelegramService {
                 }
                 catch (err) {
                     const name = fisFatalAuthName(err);
-                    if (name && dcId === undefined && this.client === client)
+                    if (name && (dcId ?? rest[0]?.dcId) === undefined && this.client === client)
                         this.markSessionDead(name);
                     throw err;
                 }
             };
+            // Telegram MCP Starter (teleproto 1.233): события связи главного sender — одной строкой в
+            // лог (обрыв полуоткрытого соединения, сон Мака). Подписка ничего не подключает.
+            if (typeof client.onReconnecting === "function" && !client._fisLifecycleLogged) {
+                client._fisLifecycleLogged = true;
+                try {
+                    client.onReconnecting(() => console.error("[mcp-telegram] связь с Telegram потеряна — teleproto переподключается"));
+                    client.onReconnect(() => console.error("[mcp-telegram] связь с Telegram восстановлена"));
+                }
+                catch { }
+            }
         }
     }
     async clearSession() {
@@ -1113,6 +1226,9 @@ export class TelegramService {
         // Early exit if already aborted — avoids creating a Telegram connection we'd immediately tear down.
         if (signal?.aborted)
             return { success: false, message: "QR login aborted" };
+        const fisRefusal = fisSealRefusal();  // Telegram MCP Starter (A11): без печати клиента не строим
+        if (fisRefusal)
+            return { success: false, message: fisRefusal };
         const session = new StringSession("");
         const proxy = resolveProxy();
         const client = new TelegramClient(session, this.apiId, this.apiHash, {
@@ -1121,6 +1237,9 @@ export class TelegramService {
             baseLogger: resolveBaseLogger(),  // апстрим 1.41.2: логгер библиотеки не выше ERROR
             ...(proxy && { proxy }),
         });
+        // Telegram MCP Starter (A7-tp): страж ключа — до connect(), иначе Session возьмёт исходный
+        // колбэк навсегда и демон на этом клиенте после входа останется без стража.
+        this.fisInstallKeyGuard(client);
         try {
             await client.connect();
             if (signal?.aborted) {
@@ -1799,6 +1918,7 @@ export class TelegramService {
             // путь с другой машины (ENOENT), диск полон (ENOSPC). Ошибка потока теперь сразу завершает
             // ожидание, а сторож ловит и молчащий транспорт: нет новых кусков — честная ошибка.
             const fisAbort = new AbortController();
+            const fisFlood = fisFloodTransfer();  // Telegram MCP Starter (M22): флуд только этой передачи
             const fisStallMs = fisDownloadStallMs();
             let fisStallTimer;
             let fisStalled = false;
@@ -1809,7 +1929,7 @@ export class TelegramService {
                     fisStallTimer = setTimeout(() => {
                         // Короткий флуд пережидаем, как и раньше: повтор начал бы файл с нуля.
                         // Прогресс тут признак жизни для потолка вызова в master.js.
-                        const fisFloodLeft = fisMediaFloodLeftMs(this.client);
+                        const fisFloodLeft = fisMediaFloodLeftMs(fisFlood);
                         if (fisFloodLeft > 0 && fisFloodLeft <= FIS_MEDIA_FLOOD_MAX_MS) {
                             if (typeof onProgress === "function")
                                 onProgress(fisLastReceived, fisLastTotal);
@@ -1831,11 +1951,11 @@ export class TelegramService {
             fisRearmStall();
             try {
                 await Promise.race([new Promise((resolve) => fisWriter.once("open", resolve)), fisWatch]);
-                const fisDownload = this.client.downloadMedia(fisTarget, {  // Telegram MCP Starter (R5)
+                const fisDownload = fisFloodAls.run({ transfer: fisFlood }, () => this.client.downloadMedia(fisTarget, {  // Telegram MCP Starter (R5, M22)
                     outputFile: fisWriter,
                     progressCallback: fisProgress,
                     signal: fisAbort.signal,
-                });
+                }));
                 // Проигравший гонку не должен всплыть необработанным отклонением.
                 Promise.resolve(fisDownload).catch(() => { });
                 result = await Promise.race([fisDownload, fisWatch]);
@@ -1879,8 +1999,17 @@ export class TelegramService {
                 return downloadPath;
             }
             try { unlinkSync(fisPart); } catch { }
-            if (fisLastError && fisFatal(fisLastError))
+            if (fisLastError && fisFatal(fisLastError)) {
+                // Telegram MCP Starter (M22, teleproto 1.233): флуд дольше бюджета FileTransfers (60 с)
+                // библиотека не пережидает, а бросает — тем же словом FLOOD_WAIT_<N>, что и сторож.
+                const fisFlood = fisFloodSeconds(fisLastError);
+                if (fisFlood) {
+                    const fisFloodError = new Error(`FLOOD_WAIT_${fisFlood}: Telegram просит подождать (сообщение ${messageId}). Неполный файл удалён, вызов можно повторить позже.`);
+                    Object.assign(fisFloodError, { code: 420, errorMessage: fisLastError.errorMessage, seconds: fisFlood });
+                    throw fisFloodError;
+                }
                 throw fisLastError;
+            }
             // Ни ошибки, ни байта, а gramJS вернул пустоту или пустой Buffer — так
             // он отвечает на медиа без скачиваемого файла (веб-превью, гео, опрос).
             // Это свойство сообщения, а не связи: «нет файла» (permanent), а не

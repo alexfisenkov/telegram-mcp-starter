@@ -14,7 +14,7 @@ const daemon = read("tools/daemon-setup.sh");
 
 for (const [name, installer] of [["install.sh", sh], ["install.ps1", ps]]) {
   assert.match(installer, /1\.43\.1/, `${name} pins the package version`);
-  assert.match(installer, /v2\.1\.1/, `${name} pins the public source release`);
+  assert.match(installer, /v2\.2\.0/, `${name} pins the public source release`);
   assert.match(installer, /ci[\s\S]*?--ignore-scripts/, `${name} installs the lockfile without postinstall`);
   assert.match(installer, /apply-patches\.mjs[\s\S]*?--package-dir/, `${name} applies the runtime manifest`);
   assert.match(installer, /apply-patches\.mjs[\s\S]*?--check/, `${name} verifies the runtime manifest`);
@@ -39,7 +39,7 @@ assert.match(doctor, /source-receipt\.json/);
 assert.match(doctor, /receipt\.commitSHA/);
 assert.equal(manifest.packageName, "@overpod/mcp-telegram");
 assert.equal(manifest.telegramDependency.packageName, "teleproto");
-assert.equal(manifest.telegramDependency.version, "1.229.0");
+assert.equal(manifest.telegramDependency.version, "1.233.0");
 assert.equal(manifest.telegramDependency.alias, "telegram");
 assert.match(doctor, /postimageSha256/);
 assert.match(doctor, /const env = \{\}/, "doctor starts both modes with an empty child environment");
@@ -66,12 +66,40 @@ assert.doesNotMatch(daemonPs, /daemon\.vbs[\s\S]*?Encoding Ascii/);
 assert.match(read("tests/installer-vbs-encoding.mjs"), /UTF-16LE BOM/);
 assert.match(doctor, /tools\.tools\.length < minimumTools/);
 assert.match(doctor, /telegram-status подтвердил авторизованное подключение/);
-assert.equal(packageJson.version, "2.1.1");
+assert.equal(packageJson.version, "2.2.0");
 assert.equal(packageJson.dependencies["@overpod/mcp-telegram"], "1.43.1");
-assert.equal(packageJson.overrides.telegram, "npm:teleproto@1.229.0");
+assert.equal(packageJson.overrides.telegram, "npm:teleproto@1.233.0");
 assert.equal(lock.packages["node_modules/@overpod/mcp-telegram"].version, "1.43.1");
-assert.equal(lock.packages["node_modules/@overpod/mcp-telegram/node_modules/telegram"].version, "1.229.0");
+assert.equal(lock.packages["node_modules/telegram"].version, "1.233.0");
 assert.equal(lock.packages["node_modules/playwright"].version, "1.62.1");
+assert.equal(lock.packages["node_modules/@overpod/mcp-telegram/node_modules/telegram"], undefined,
+  "the telegram alias is hoisted, so the installers read it at node_modules/telegram");
+for (const [name, installer] of [["install.sh", sh], ["install.ps1", ps]]) {
+  assert.match(installer, /packages\?\.\["node_modules\/telegram"\]/, `${name} reads the hoisted teleproto lock entry`);
+  assert.doesNotMatch(installer, /mcp-telegram\/node_modules\/telegram/, `${name} does not read the old nested lock entry`);
+}
+// teleproto 1.233 needs cifrante; npm ci on a student's OS installs only the matching prebuilt
+// optional package, so the lockfile must carry every platform even when it is regenerated on one.
+const cifrante = lock.packages["node_modules/cifrante"];
+assert.equal(cifrante?.version, "0.8.1");
+const cifrantePlatforms = {
+  "darwin-arm64": ["darwin", "arm64"], "darwin-x64": ["darwin", "x64"],
+  "linux-arm64-gnu": ["linux", "arm64", "glibc"], "linux-arm64-musl": ["linux", "arm64", "musl"],
+  "linux-x64-gnu": ["linux", "x64", "glibc"], "linux-x64-musl": ["linux", "x64", "musl"],
+  "win32-arm64": ["win32", "arm64"], "win32-x64": ["win32", "x64"],
+};
+assert.deepEqual(Object.keys(cifrante.optionalDependencies ?? {}).sort(), Object.keys(cifrantePlatforms).map((p) => `@cifrante/${p}`).sort());
+for (const [platform, [os, cpu, libc]] of Object.entries(cifrantePlatforms)) {
+  const entry = lock.packages[`node_modules/@cifrante/${platform}`];
+  assert.ok(entry, `lockfile carries @cifrante/${platform}`);
+  assert.equal(entry.version, "0.8.1");
+  assert.equal(entry.optional, true);
+  assert.match(entry.integrity ?? "", /^sha512-/);
+  assert.match(entry.resolved ?? "", new RegExp(`^https://registry\\.npmjs\\.org/@cifrante/${platform}/-/${platform}-0\\.8\\.1\\.tgz$`));
+  assert.deepEqual(entry.os, [os]);
+  assert.deepEqual(entry.cpu, [cpu]);
+  if (libc) assert.deepEqual(entry.libc, [libc]);
+}
 
 for (const name of readdirSync(new URL("../configs/", import.meta.url)).filter((entry) => entry.endsWith(".json"))) {
   JSON.parse(read(`configs/${name}`));

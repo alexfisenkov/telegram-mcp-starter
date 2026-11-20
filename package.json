@@ -1,6 +1,6 @@
 {
   "name": "telegram-mcp-starter",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "private": true,
   "description": "Pinned runtime dependencies for Telegram MCP Starter",
   "dependencies": {
@@ -8,7 +8,7 @@
     "playwright": "1.62.1"
   },
   "overrides": {
-    "telegram": "npm:teleproto@1.229.0"
+    "telegram": "npm:teleproto@1.233.0"
   },
   "scripts": {
     "runtime:apply": "node tools/apply-patches.mjs --package-dir node_modules/@overpod/mcp-telegram",

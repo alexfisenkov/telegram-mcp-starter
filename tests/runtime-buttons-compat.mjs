@@ -40,7 +40,7 @@ function fixture(markup) {
 }
 
 test('teleproto nested callback reader preserves semantic type, label, exact bytes and 2FA flag', async () => {
-  assert.equal(requireFromPackage('telegram/package.json').version, '1.229.0');
+  assert.equal(requireFromPackage('telegram/package.json').version, '1.233.0');
   const f = fixture(inlineMarkup([
     inline(new Api.InlineButtonTypeCallback({ data: DATA }), 'Synthetic callback'),
     inline(new Api.InlineButtonTypeCallback({ data: DATA, requiresPassword: true }), 'Synthetic 2FA')

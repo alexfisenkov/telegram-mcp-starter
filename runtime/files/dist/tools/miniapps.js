@@ -82,7 +82,7 @@ export function registerMiniAppTools(server, telegram) {
             // Telegram MCP Starter: URL несёт подписанные tgWebAppData и действует от имени
             // пользователя — при render=true он вызывающему не нужен вовсе (содержимое
             // уже возвращено), поэтому в ответ идёт только домен, без данных.
-            await openMiniApp(url);
+            const openedApp = await openMiniApp(url);
             const state = await readMiniApp();
             const elements = state.elements.length
                 ? state.elements.map((e) => `  ${e.ref} <${e.tag}> ${e.label || "—"}`).join("\n")
@@ -94,7 +94,7 @@ export function registerMiniAppTools(server, telegram) {
             catch {
                 // если разбор не удался, оставляем прочерк — полный URL всё равно не печатаем
             }
-            const head = [opened, `Домен: ${origin}`, `queryId: ${queryId ?? "—"}`].join("\n");
+            const head = [opened, `Домен: ${origin}`, `queryId: ${queryId ?? "—"}`, ...(openedApp?.warning ? [`Внимание: ${openedApp.warning}`] : [])].join("\n");
             return ok([head, "", `Заголовок: ${state.title}`, "", state.text || "(страница пуста)", "", "Элементы:", elements].join("\n"));
         }
         catch (e) {

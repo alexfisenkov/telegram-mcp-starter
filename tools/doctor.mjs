@@ -2,7 +2,7 @@
 // Проверяет установленный runtime, затем выполняет MCP initialize + tools/list без вызова инструментов.
 // Явный флаг --status дополнительно вызывает telegram-status и требует авторизованную сессию.
 import { createHash } from "node:crypto";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -27,7 +27,7 @@ try {
   manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
   const receipt = JSON.parse(readFileSync(receiptPath, "utf8"));
   const pkg = JSON.parse(readFileSync(join(packageDir, "package.json"), "utf8"));
-  if (receipt.repository !== "alexfisenkov/telegram-mcp-starter" || receipt.version !== "v2.1.1" ||
+  if (receipt.repository !== "alexfisenkov/telegram-mcp-starter" || receipt.version !== "v2.2.0" ||
       !/^[a-f0-9]{40}$/.test(receipt.commitSHA ?? "")) {
     throw new Error("source receipt is missing or does not contain the pinned public commit SHA");
   }
@@ -37,7 +37,10 @@ try {
   if (pkg.version !== manifest.packageVersion || pkg.version !== "1.43.1") {
     throw new Error(`ожидалась версия ${manifest.packageVersion}, установлена ${pkg.version}`);
   }
-  const telegramDependency = JSON.parse(readFileSync(join(packageDir, "node_modules", "telegram", "package.json"), "utf8"));
+  // The alias is resolved as Node resolves it from the package: nested first, else hoisted.
+  const nestedTelegram = join(packageDir, "node_modules", "telegram", "package.json");
+  const telegramPackagePath = existsSync(nestedTelegram) ? nestedTelegram : join(serverRoot, "node_modules", "telegram", "package.json");
+  const telegramDependency = JSON.parse(readFileSync(telegramPackagePath, "utf8"));
   if (telegramDependency.name !== manifest.telegramDependency?.packageName ||
       telegramDependency.version !== manifest.telegramDependency?.version ||
       manifest.telegramDependency?.alias !== "telegram") {
@@ -82,7 +85,7 @@ if (!statusMode) {
   env.TELEGRAM_PROXY_SOCKS_TYPE = "5";
 }
 const transport = new StdioClientTransport({ command, args, env });
-const client = new Client({ name: "telegram-mcp-doctor", version: "2.1.1" });
+const client = new Client({ name: "telegram-mcp-doctor", version: "2.2.0" });
 const timer = setTimeout(() => {
   console.error("[X] MCP-сервер не ответил за 30 секунд.");
   process.exit(1);

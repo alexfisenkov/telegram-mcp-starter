@@ -26,7 +26,7 @@ $ErrorActionPreference = "Stop"
 
 $PkgName    = "@overpod/mcp-telegram"
 $PkgVersion = "1.43.1"
-$SourceVersion = "v2.1.1"
+$SourceVersion = "v2.2.0"
 $SourceRepository = "alexfisenkov/telegram-mcp-starter"
 
 $BaseDir    = if ($InstallRoot) { [IO.Path]::GetFullPath($InstallRoot) } elseif ($env:TELEGRAM_MCP_INSTALL_ROOT) { [IO.Path]::GetFullPath($env:TELEGRAM_MCP_INSTALL_ROOT) } else { Join-Path $env:USERPROFILE ".telegram-mcp" }
@@ -172,14 +172,14 @@ try {
         }
     }
     $SourcePackage = Get-Content (Join-Path $StagedServer "package.json") -Raw | ConvertFrom-Json
-    if ($SourcePackage.version -ne "2.1.1") { throw "Ожидалась версия исходников 2.1.1, получена $($SourcePackage.version)." }
-    if ($SourcePackage.overrides.telegram -ne "npm:teleproto@1.229.0") { throw "Исходники должны закреплять override telegram: npm:teleproto@1.229.0." }
+    if ($SourcePackage.version -ne "2.2.0") { throw "Ожидалась версия исходников 2.2.0, получена $($SourcePackage.version)." }
+    if ($SourcePackage.overrides.telegram -ne "npm:teleproto@1.233.0") { throw "Исходники должны закреплять override telegram: npm:teleproto@1.233.0." }
     $LockReaderScript = @'
 const fs = require("node:fs");
 const p = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
 process.stdout.write(JSON.stringify({
   package: p.packages?.["node_modules/@overpod/mcp-telegram"]?.version,
-  teleproto: p.packages?.["node_modules/@overpod/mcp-telegram/node_modules/telegram"]?.version,
+  teleproto: p.packages?.["node_modules/telegram"]?.version,
   playwright: p.packages?.["node_modules/playwright"]?.version,
 }));
 '@
@@ -189,7 +189,7 @@ process.stdout.write(JSON.stringify({
     if ($LASTEXITCODE -ne 0) { throw "Не удалось прочитать закреплённые версии из package-lock.json." }
     $LockInfo = $LockJson | ConvertFrom-Json
     if ($LockInfo.package -ne $PkgVersion) { throw "Lockfile закрепляет $PkgName@$($LockInfo.package), ожидалась $PkgVersion." }
-    if ($LockInfo.teleproto -ne "1.229.0") { throw "Lockfile не закрепляет teleproto@1.229.0 (получено $($LockInfo.teleproto))." }
+    if ($LockInfo.teleproto -ne "1.233.0") { throw "Lockfile не закрепляет teleproto@1.233.0 (получено $($LockInfo.teleproto))." }
     if ($LockInfo.playwright -ne "1.62.1") { throw "Lockfile не закрепляет Playwright@1.62.1 (получено $($LockInfo.playwright))." }
 
     Push-Location $StagedServer

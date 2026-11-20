@@ -3,7 +3,7 @@ import {
   closeSync, existsSync, fsyncSync, lstatSync, mkdirSync, openSync, readFileSync,
   renameSync, realpathSync, statSync, unlinkSync, writeFileSync,
 } from 'node:fs';
-import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -62,7 +62,7 @@ function assertManifest(manifest) {
   if (manifest?.schema !== 'telegram-mcp-starter-runtime-v1' ||
       manifest.packageName !== '@overpod/mcp-telegram' || manifest.packageVersion !== '1.43.1' ||
       manifest.telegramDependency?.packageName !== 'teleproto' ||
-      manifest.telegramDependency?.version !== '1.229.0' || manifest.telegramDependency?.alias !== 'telegram') {
+      manifest.telegramDependency?.version !== '1.233.0' || manifest.telegramDependency?.alias !== 'telegram') {
     fail('runtime manifest does not describe the pinned MCP and teleproto versions');
   }
   if (!Array.isArray(manifest.files) || manifest.files.length !== EXPECTED_PATHS.length) {
@@ -118,13 +118,27 @@ function packageRoot(packageDir) {
   return realpathSync(requested);
 }
 
+// The telegram alias is resolved the way Node resolves it from the package: a nested
+// node_modules/telegram wins; otherwise npm hoists it next to the package
+// (<modules>/@overpod/mcp-telegram -> <modules>/telegram), as teleproto 1.233 is.
+function teleprotoMetadataPath(root) {
+  const nested = join(root, 'node_modules', 'telegram');
+  if (existsSync(nested)) return containedPath(root, 'node_modules/telegram/package.json', 'teleproto metadata');
+  const scope = dirname(root);
+  const modules = dirname(scope);
+  if (basename(scope) === '@overpod' && basename(modules) === 'node_modules') {
+    return containedPath(modules, 'telegram/package.json', 'teleproto metadata');
+  }
+  fail('teleproto metadata is missing: the telegram alias is neither nested in nor hoisted next to the package');
+}
+
 function verifyPackageIdentity(root) {
   const packagePath = containedPath(root, 'package.json', 'package metadata');
   const pkg = JSON.parse(readFileSync(packagePath, 'utf8'));
   if (pkg.name !== MANIFEST.packageName || pkg.version !== MANIFEST.packageVersion) {
     fail(`expected ${MANIFEST.packageName}@${MANIFEST.packageVersion}; found ${pkg.name ?? 'unknown'}@${pkg.version ?? 'unknown'}`);
   }
-  const teleprotoPath = containedPath(root, 'node_modules/telegram/package.json', 'teleproto metadata');
+  const teleprotoPath = teleprotoMetadataPath(root);
   const teleproto = JSON.parse(readFileSync(teleprotoPath, 'utf8'));
   if (teleproto.name !== MANIFEST.telegramDependency.packageName || teleproto.version !== MANIFEST.telegramDependency.version) {
     fail(`expected telegram alias teleproto@${MANIFEST.telegramDependency.version}; found ${teleproto.name ?? 'unknown'}@${teleproto.version ?? 'unknown'}`);

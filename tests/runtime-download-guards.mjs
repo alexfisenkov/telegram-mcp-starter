@@ -31,9 +31,29 @@ try {
   const { handleClient } = await import(pathToFileURL(resolve(packageDir, 'dist/master.js')));
   const { encodeMessage } = await import(pathToFileURL(resolve(packageDir, 'dist/ipc-protocol.js')));
 
+  // teleproto 1.233: file parts go through the real FileTransfers (queue, FLOOD_WAIT sleep,
+  // cancellation) over a pool slot. Only the slot is faked; getFile plays the server.
+  const { FileTransfers } = requireFromPackage('telegram/client/files/FileTransfers.js');
+  const { RPCMessageToError } = requireFromPackage('telegram/errors/index.js');
+  const { Logger, LogLevel } = requireFromPackage('telegram/extensions/Logger.js');
+  const location = () => new Api.InputDocumentFileLocation({ id: bigInt(1), accessHash: bigInt(1), fileReference: Buffer.alloc(0), thumbSize: '' });
+  const floodError = (seconds) => RPCMessageToError({ errorMessage: `FLOOD_WAIT_${seconds}`, errorCode: 420 },
+    new Api.upload.GetFile({ location: location(), offset: bigInt(0), limit: PART }));
   const service = (getFile) => {
-    const client = { session: { dcId: 2 }, _media: { getFile, opts: { partSize: PART } } };
-    const location = new Api.InputDocumentFileLocation({ id: bigInt(1), accessHash: bigInt(1), fileReference: Buffer.alloc(0), thumbSize: '' });
+    const session = {
+      addStateToQueue(state) {
+        Promise.resolve().then(() => getFile(state.request)).then(
+          (bytes) => state.resolve(new Api.upload.File({ type: new Api.storage.FileUnknown(), mtime: 0, bytes })),
+          (error) => state.reject(error));
+      },
+      cancelRequest(state, reason) { state.reject(reason); },
+    };
+    const slot = { load: 0, enter() {}, leave() {}, onDeath() { return () => {}; }, ensureConnected: async () => session };
+    const client = {
+      session: { dcId: 2 }, _log: new Logger(LogLevel.NONE), _premium: false, _bot: false,
+      _getAppConfig: async () => ({}), _network: { getSession: () => slot }, _addresses: { isCdn: () => false },
+    };
+    client._files = new FileTransfers(client, { partSize: PART, sessions: 1 });
     const instance = Object.create(TelegramService.prototype);
     instance.connected = true;
     instance.unhealthy = [];
@@ -41,10 +61,12 @@ try {
     instance.resolvePeer = async () => ({});
     instance.client = {
       getMessages: async () => [{ media: {}, photo: {} }],
-      downloadMedia: (_message, { outputFile, progressCallback, signal }) => downloadFile(client, location, { outputFile, progressCallback, signal }),
+      downloadMedia: (_message, { outputFile, progressCallback, signal }) => downloadFile(client, location(), { outputFile, progressCallback, signal }),
     };
     return instance;
   };
+  // A file of a given length: the server answers the [offset, offset+limit) slice of upload.GetFile.
+  const sized = (length, byte = 7) => async (request) => Buffer.alloc(Math.max(0, Math.min(request.limit, length - Number(request.offset))), byte);
   const leftovers = () => readdirSync(dir).filter((name) => name.endsWith('.part'));
 
   // A path the server cannot write answers with words and never asks Telegram for the file.
@@ -56,7 +78,7 @@ try {
   assert.equal(requests, 0);
 
   // A stream that dies mid-download ends the call instead of hanging it.
-  const breaking = service(async () => { await pause(5); return Buffer.alloc(PART, 1); });
+  const breaking = service(async (request) => { await pause(5); return Buffer.alloc(request.limit, 1); });
   const original = breaking.client.downloadMedia;
   breaking.client.downloadMedia = (message, params) => {
     setTimeout(() => params.outputFile.destroy(Object.assign(new Error('ENOSPC: no space left on device, write'), { code: 'ENOSPC' })), 20);
@@ -92,8 +114,60 @@ try {
   assert.match(stalled.error?.message ?? '', /connection/);
   assert.equal(silent.unhealthy.length, 1);
   assert.deepEqual(leftovers(), []);
-  let parts = 0;
-  const slow = await settle(service(async () => { await pause(120); return parts++ < 5 ? Buffer.alloc(PART, 2) : Buffer.alloc(0); })
+
+  // A flood longer than the library budget (60 s) comes back at once as FLOOD_WAIT_<N>, no part re-asked.
+  const longParts = [];
+  const longFlooded = await settle(service(async (request) => { longParts.push(Number(request.offset)); throw floodError(3600); })
+    .downloadMedia('1', 33, join(dir, 'long-flood.jpg')), 3000, 'a long media flood');
+  assert.match(longFlooded.error?.message ?? '', /^FLOOD_WAIT_3600\b/);
+  assert.equal(longFlooded.error.code, 420);
+  assert.ok(longParts.length >= 1 && new Set(longParts).size === longParts.length, `no part is retried blindly: ${longParts}`);
+  assert.deepEqual(leftovers(), []);
+
+  // A short flood is slept out by FileTransfers: the 300 ms watchdog does not cut it and reports life.
+  let floods = 0;
+  const onePart = sized(PART);
+  const flooded = service(async (request) => { if (!floods++) throw floodError(1); return onePart(request); });
+  const alive = [];
+  const shortFlood = await settle(flooded.downloadMedia('1', 32, join(dir, 'flood.jpg'), (received) => alive.push(received)), 5000, 'download under a short flood');
+  assert.equal(shortFlood.value, join(dir, 'flood.jpg'), String(shortFlood.error));
+  assert.ok(floods >= 2, 'the flooded part is asked again after the wait');
+  assert.ok(alive.length >= 1, 'a call under flood reports life');
+  assert.equal(flooded.unhealthy.length, 0);
+  assert.deepEqual(leftovers(), []);
+
+  // The flood mark belongs to one transfer: a flood of A never hides a real stall of B on the same client.
+  let mode = 'long';
+  const dataA = sized(PART);
+  const shared = service(async (request) => {
+    if (mode === 'long') throw floodError(300);
+    if (mode === 'flood') throw floodError(2);
+    if (mode === 'silent') return new Promise(() => {});
+    return dataA(request);
+  });
+  const longA = await settle(shared.downloadMedia('1', 35, join(dir, 'a1.jpg')), 3000, 'long flood of A');
+  assert.match(longA.error?.message ?? '', /^FLOOD_WAIT_300\b/);
+  mode = 'silent';
+  let started = Date.now();
+  const stalledB1 = await settle(shared.downloadMedia('1', 36, join(dir, 'b1.jpg')), 3000, 'stall of B after a long flood of A');
+  assert.match(stalledB1.error?.message ?? '', /без новых данных/, 'an abandoned flood of A does not hide the stall of B');
+  assert.ok(Date.now() - started < 1500, `B is cut by its own watchdog: ${Date.now() - started} ms`);
+  mode = 'flood';
+  const pendingA = shared.downloadMedia('1', 37, join(dir, 'a2.jpg'));
+  await pause(50);
+  mode = 'silent';
+  started = Date.now();
+  const stalledB2 = await settle(shared.downloadMedia('1', 38, join(dir, 'b2.jpg')), 3000, 'stall of B while A sleeps on a flood');
+  assert.match(stalledB2.error?.message ?? '', /без новых данных/, 'a flood A waits out does not hide the stall of B');
+  assert.ok(Date.now() - started < 1500, `B is cut by its own watchdog: ${Date.now() - started} ms`);
+  mode = 'data';
+  const finishedA = await settle(pendingA, 5000, 'A after its short flood');
+  assert.equal(finishedA.value, join(dir, 'a2.jpg'), String(finishedA.error));
+  assert.equal(shared.unhealthy.length, 2, 'only the two stalls of B are marked unhealthy');
+  assert.deepEqual(leftovers(), []);
+
+  const fiveParts = sized(5 * PART, 2);
+  const slow = await settle(service(async (request) => { await pause(120); return fiveParts(request); })
     .downloadMedia('1', 4, join(dir, 'slow.jpg')), 5000, 'slow download');
   assert.equal(slow.value, join(dir, 'slow.jpg'), String(slow.error));
   assert.equal(statSync(join(dir, 'slow.jpg')).size, 5 * PART);
@@ -101,8 +175,7 @@ try {
 
   // Without a path the file lands in the downloads folder and the reply says how to fetch it.
   process.env.TELEGRAM_DOWNLOADS_DIR = join(dir, 'downloads');
-  let chunks = 0;
-  const saved = await service(async () => (chunks++ < 1 ? Buffer.alloc(PART, 3) : Buffer.alloc(0))).downloadMedia('-100123', 5);
+  const saved = await service(sized(PART, 3)).downloadMedia('-100123', 5);
   assert.equal(saved, join(dir, 'downloads', 'tg--100123-5.jpg'));
   writeFileSync(saved, Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]));
   const tools = {};
@@ -170,7 +243,7 @@ try {
   const longFlood = await settle(new RateLimiter().execute(flooding(900), 'probe'), 2000, 'a long flood');
   assert.match(longFlood.error?.message ?? '', /^FLOOD_WAIT_900/);
 
-  console.log('OK: download writer failure, stall watchdog, downloads folder, delivery reply, detached queue, read ceiling');
+  console.log('OK: download writer failure, stall watchdog, per-transfer flood mark through FileTransfers, downloads folder, delivery reply, detached queue, read ceiling');
 } finally {
   rmSync(packageDir, { recursive: true, force: true });
   rmSync(dir, { recursive: true, force: true });

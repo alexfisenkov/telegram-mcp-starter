@@ -1,6 +1,6 @@
 // Telegram MCP Starter (M3): жизненный цикл Playwright для мини-приложений.
 // Одна активная страница за раз — этого достаточно и не плодит состояние.
-import { TELEGRAM_CONTAINER_SHIM } from "./miniapp-shim.js";
+import { miniAppOrigin, telegramContainerShim } from "./miniapp-shim.js";
 
 let browser = null;
 let context = null;
@@ -46,7 +46,10 @@ export async function openMiniApp(url) {
         userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
     });
     try {
-        await newContext.addInitScript(TELEGRAM_CONTAINER_SHIM);
+        // Telegram MCP Starter (M3-origin): шим только в главном фрейме домена,
+        // который выдал Telegram. Bot API 10.2 запретил методы мини-приложения с чужих
+        // доменов, а addInitScript выполняется в каждом фрейме.
+        await newContext.addInitScript(telegramContainerShim(miniAppOrigin(url)));
         const newPage = await newContext.newPage();
         await newPage.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 });
         await newPage.waitForTimeout(1500); // мини-аппы дорисовываются после domcontentloaded
@@ -54,7 +57,15 @@ export async function openMiniApp(url) {
         // иначе частично поднятая страница осталась бы "активной".
         context = newContext;
         page = newPage;
-        return { title: await page.title() };
+        // Telegram MCP Starter (M3-origin): апп ушёл редиректом на другой домен — контейнера там
+        // нет (как и методов в живом клиенте после Bot API 10.2). Говорим об этом прямо,
+        // иначе «откройте в Telegram» на странице выглядело бы поломкой шима.
+        const expected = miniAppOrigin(url);
+        const landed = miniAppOrigin(page.url());
+        const warning = landed !== expected
+            ? `Мини-приложение ушло на другой домен (${landed ?? "без домена"} вместо ${expected}); контейнер Telegram там не установлен.`
+            : undefined;
+        return { title: await page.title(), warning };
     }
     catch (e) {
         await newContext.close().catch(() => { });
