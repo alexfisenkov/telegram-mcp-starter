@@ -4349,6 +4349,13 @@ export class TelegramService {
                 inviteUsers: true,
                 pinMessages: true,
                 manageCall: true,
+                // Telegram MCP Starter (M27): without manageTopics an admin cannot create or edit
+                // forum topics (`You must be an admin in this chat`); stories get the same full rights.
+                // addAdmins and anonymous are deliberately NOT granted: only the owner appoints admins.
+                manageTopics: true,
+                postStories: true,
+                editStories: true,
+                deleteStories: true,
             }),
             rank: options?.title ?? "",
         }));
@@ -4888,6 +4895,13 @@ export class TelegramService {
         }, `getChannelUpdates ${chatId}`);
     }
     // ─── Forum topics ──────────────────────────────────────────────────────────
+    // Telegram MCP Starter (M26): the pinned teleproto 1.233.0 schema has no channels.*ForumTopic
+    // or channels.DeleteTopicHistory (`... is not a constructor`). Create, edit, pin, reorder and
+    // delete live in Api.messages.* and take `peer`; the InputPeer is resolved as in M19.
+    async forumInputPeer(chatId) {
+        const resolved = await this.resolvePeer(chatId);
+        return this.client.getInputEntity(resolved);
+    }
     async createForumTopic(chatId, title, iconColor, iconEmojiId) {
         if (!this.client || !this.connected)
             throw new Error(NOT_CONNECTED_ERROR);
@@ -4897,8 +4911,9 @@ export class TelegramService {
                 throw new Error("Forum topics are only available in forum supergroups");
             }
             const randomId = bigInt(Math.floor(Math.random() * 1e15));
-            const result = await this.client?.invoke(new Api.channels.CreateForumTopic({
-                channel: entity,
+            const peer = await this.forumInputPeer(chatId);
+            const result = await this.client?.invoke(new Api.messages.CreateForumTopic({
+                peer,
                 title,
                 iconColor,
                 iconEmojiId: iconEmojiId ? bigInt(iconEmojiId) : undefined,
@@ -4937,8 +4952,9 @@ export class TelegramService {
             if (!(entity instanceof Api.Channel) || !entity.forum) {
                 throw new Error("Forum topics are only available in forum supergroups");
             }
-            await this.client?.invoke(new Api.channels.EditForumTopic({
-                channel: entity,
+            const peer = await this.forumInputPeer(chatId);
+            await this.client?.invoke(new Api.messages.EditForumTopic({
+                peer,
                 topicId,
                 title: options.title,
                 iconEmojiId: options.iconEmojiId ? bigInt(options.iconEmojiId) : undefined,
@@ -4958,8 +4974,9 @@ export class TelegramService {
             if (!(entity instanceof Api.Channel) || !entity.forum) {
                 throw new Error("Forum topics are only available in forum supergroups");
             }
-            await this.client?.invoke(new Api.channels.UpdatePinnedForumTopic({
-                channel: entity,
+            const peer = await this.forumInputPeer(chatId);
+            await this.client?.invoke(new Api.messages.UpdatePinnedForumTopic({
+                peer,
                 topicId,
                 pinned,
             }));
@@ -4978,8 +4995,9 @@ export class TelegramService {
             if (!(entity instanceof Api.Channel) || !entity.forum) {
                 throw new Error("Forum topics are only available in forum supergroups");
             }
-            await this.client?.invoke(new Api.channels.ReorderPinnedForumTopics({
-                channel: entity,
+            const peer = await this.forumInputPeer(chatId);
+            await this.client?.invoke(new Api.messages.ReorderPinnedForumTopics({
+                peer,
                 order,
                 force,
             }));
@@ -4993,8 +5011,9 @@ export class TelegramService {
             if (!(entity instanceof Api.Channel) || !entity.forum) {
                 throw new Error("Forum topics are only available in forum supergroups");
             }
-            await this.client?.invoke(new Api.channels.DeleteTopicHistory({
-                channel: entity,
+            const peer = await this.forumInputPeer(chatId);
+            await this.client?.invoke(new Api.messages.DeleteTopicHistory({
+                peer,
                 topMsgId: topicId,
             }));
         }, `deleteForumTopic ${chatId}/${topicId}`);

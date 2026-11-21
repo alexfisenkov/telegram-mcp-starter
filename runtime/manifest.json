@@ -13,7 +13,7 @@
       "path": "dist/telegram-client.js",
       "source": "upstream-postimage",
       "preimageSha256": "0f327c726a8b9030c63f3632be6b13529d5f64d5e1c2959744d5a93bca495ded",
-      "postimageSha256": "07391d292b197db78657afdddf5fd8ddf3e27a3677aa728ca4177d81a9480ef3"
+      "postimageSha256": "612803fec86f46945bd4b909ed3760a7be7df74354b42aa41d52172828518d1f"
     },
     {
       "path": "dist/telegram-helpers.js",
